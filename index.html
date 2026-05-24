@@ -669,6 +669,10 @@
             <label>Trades Taken</label>
             <input type="number" id="fTrades" placeholder="e.g. 3" min="0" step="1" />
           </div>
+          <div class="field">
+            <label>Market Traded</label>
+            <input type="text" id="fMarket" placeholder="e.g. EUR/USD, AAPL, BTC" />
+          </div>
         </div>
 
         <!-- Notes — full width -->
@@ -1000,6 +1004,7 @@
       document.getElementById('fCapital').value = '';
       document.getElementById('fRR').value      = '';
       document.getElementById('fTrades').value  = '';
+      document.getElementById('fMarket').value  = '';
       document.getElementById('nBefore').value  = '';
       document.getElementById('nAfter').value   = '';
       document.getElementById('nSummary').value = '';
@@ -1013,6 +1018,7 @@
         if (t.capital  !== undefined) document.getElementById('fCapital').value = t.capital;
         if (t.rr       !== undefined) document.getElementById('fRR').value      = t.rr;
         if (t.trades   !== undefined) document.getElementById('fTrades').value  = t.trades;
+        if (t.market   !== undefined) document.getElementById('fMarket').value  = t.market;
         if (t.nBefore  !== undefined) document.getElementById('nBefore').value  = t.nBefore;
         if (t.nAfter   !== undefined) document.getElementById('nAfter').value   = t.nAfter;
         if (t.nSummary !== undefined) document.getElementById('nSummary').value = t.nSummary;
@@ -1135,6 +1141,7 @@
         capital:  document.getElementById('fCapital').value,
         rr:       document.getElementById('fRR').value,
         trades:   document.getElementById('fTrades').value,
+        market:   document.getElementById('fMarket').value,
         nBefore:  document.getElementById('nBefore').value,
         nAfter:   document.getElementById('nAfter').value,
         nSummary: document.getElementById('nSummary').value,
