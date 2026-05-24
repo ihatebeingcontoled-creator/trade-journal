@@ -13,6 +13,7 @@
  *     capital   TEXT,
  *     rr        TEXT,
  *     trades    TEXT,
+ *     market    TEXT,
  *     nBefore   TEXT,
  *     nAfter    TEXT,
  *     nSummary  TEXT,
@@ -50,6 +51,7 @@ export async function onRequestGet({ env }) {
         capital:  row.capital  ?? '',
         rr:       row.rr       ?? '',
         trades:   row.trades   ?? '',
+        market:   row.market   ?? '',
         nBefore:  row.nBefore  ?? '',
         nAfter:   row.nAfter   ?? '',
         nSummary: row.nSummary ?? '',
@@ -72,14 +74,15 @@ export async function onRequestPost({ request, env }) {
     if (!t.date) return json({ error: 'Missing date' }, 400);
 
     await env.DB.prepare(`
-      INSERT INTO trades (date, profit, percent, capital, rr, trades, nBefore, nAfter, nSummary, hasImage)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO trades (date, profit, percent, capital, rr, trades, market, nBefore, nAfter, nSummary, hasImage)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(date) DO UPDATE SET
         profit   = excluded.profit,
         percent  = excluded.percent,
         capital  = excluded.capital,
         rr       = excluded.rr,
         trades   = excluded.trades,
+        market   = excluded.market,
         nBefore  = excluded.nBefore,
         nAfter   = excluded.nAfter,
         nSummary = excluded.nSummary,
@@ -91,6 +94,7 @@ export async function onRequestPost({ request, env }) {
       t.capital  ?? '',
       t.rr       ?? '',
       t.trades   ?? '',
+      t.market   ?? '',
       t.nBefore  ?? '',
       t.nAfter   ?? '',
       t.nSummary ?? '',
