@@ -514,7 +514,8 @@
       color: #111;
       font-family: inherit;
       outline: none;
-      resize: vertical;
+      resize: none;
+      overflow: hidden;
       min-height: 85px;
       line-height: 1.5;
       transition: border-color 0.15s;
@@ -1034,6 +1035,12 @@
       recalcPercent();
 
       document.getElementById('overlay').classList.add('open');
+
+      /* Resize textareas to fit existing notes */
+      ['nBefore', 'nAfter', 'nSummary'].forEach(id => {
+        const ta = document.getElementById(id);
+        if (ta) autoGrow(ta);
+      });
     }
 
     function closeModal() {
@@ -1188,6 +1195,16 @@
       await loadAllTrades();
       renderCalendar();
     })();
+
+    /* ── Auto-grow textareas as you type ── */
+    function autoGrow(ta) {
+      ta.style.height = 'auto';
+      ta.style.height = ta.scrollHeight + 'px';
+    }
+    ['nBefore', 'nAfter', 'nSummary'].forEach(id => {
+      const ta = document.getElementById(id);
+      if (ta) ta.addEventListener('input', () => autoGrow(ta));
+    });
   </script>
 </body>
 </html>
