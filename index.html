@@ -488,9 +488,11 @@
 
     .notes-grid {
       display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
+      grid-template-columns: 1fr 1fr;
       gap: 13px;
     }
+
+    .note-field.full { grid-column: 1 / -1; }
 
     @media (max-width: 580px) {
       .notes-grid { grid-template-columns: 1fr; }
@@ -685,10 +687,18 @@
               <textarea id="nBefore" placeholder="How were you feeling going into the session?"></textarea>
             </div>
             <div class="note-field">
+              <label>Why did you enter?</label>
+              <textarea id="nEntry" placeholder="What was your setup / reason for taking this trade?"></textarea>
+            </div>
+            <div class="note-field">
+              <label>Why did you close?</label>
+              <textarea id="nClose" placeholder="What made you exit when you did?"></textarea>
+            </div>
+            <div class="note-field">
               <label>Feeling After</label>
               <textarea id="nAfter" placeholder="How did you feel once the session ended?"></textarea>
             </div>
-            <div class="note-field">
+            <div class="note-field full">
               <label>Summary</label>
               <textarea id="nSummary" placeholder="What did today teach you?"></textarea>
             </div>
@@ -1007,6 +1017,8 @@
       document.getElementById('fTrades').value  = '';
       document.getElementById('fMarket').value  = '';
       document.getElementById('nBefore').value  = '';
+      document.getElementById('nEntry').value   = '';
+      document.getElementById('nClose').value   = '';
       document.getElementById('nAfter').value   = '';
       document.getElementById('nSummary').value = '';
       resetImgUI();
@@ -1021,6 +1033,8 @@
         if (t.trades   !== undefined) document.getElementById('fTrades').value  = t.trades;
         if (t.market   !== undefined) document.getElementById('fMarket').value  = t.market;
         if (t.nBefore  !== undefined) document.getElementById('nBefore').value  = t.nBefore;
+        if (t.nEntry   !== undefined) document.getElementById('nEntry').value   = t.nEntry;
+        if (t.nClose   !== undefined) document.getElementById('nClose').value   = t.nClose;
         if (t.nAfter   !== undefined) document.getElementById('nAfter').value   = t.nAfter;
         if (t.nSummary !== undefined) document.getElementById('nSummary').value = t.nSummary;
 
@@ -1037,10 +1051,7 @@
       document.getElementById('overlay').classList.add('open');
 
       /* Resize textareas to fit existing notes */
-      ['nBefore', 'nAfter', 'nSummary'].forEach(id => {
-        const ta = document.getElementById(id);
-        if (ta) autoGrow(ta);
-      });
+      document.querySelectorAll('.note-field textarea').forEach(autoGrow);
     }
 
     function closeModal() {
@@ -1150,6 +1161,8 @@
         trades:   document.getElementById('fTrades').value,
         market:   document.getElementById('fMarket').value,
         nBefore:  document.getElementById('nBefore').value,
+        nEntry:   document.getElementById('nEntry').value,
+        nClose:   document.getElementById('nClose').value,
         nAfter:   document.getElementById('nAfter').value,
         nSummary: document.getElementById('nSummary').value,
         hasImage: !!(pendingImg || hasExistingImg),
@@ -1201,9 +1214,8 @@
       ta.style.height = 'auto';
       ta.style.height = ta.scrollHeight + 'px';
     }
-    ['nBefore', 'nAfter', 'nSummary'].forEach(id => {
-      const ta = document.getElementById(id);
-      if (ta) ta.addEventListener('input', () => autoGrow(ta));
+    document.querySelectorAll('.note-field textarea').forEach(ta => {
+      ta.addEventListener('input', () => autoGrow(ta));
     });
   </script>
 </body>
