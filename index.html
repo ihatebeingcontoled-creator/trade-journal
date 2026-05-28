@@ -28,12 +28,209 @@
       z-index: 0;
     }
 
+    /* ── Three-panel page layout ── */
+    .page {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: 258px minmax(0, 1fr) 320px;
+      gap: 26px;
+      max-width: 1480px;
+      margin: 0 auto;
+      padding: 34px 24px 72px;
+      align-items: start;
+    }
+
     .app {
       position: relative;
       z-index: 1;
-      max-width: 1060px;
-      margin: 0 auto;
-      padding: 36px 20px 60px;
+      min-width: 0;
+    }
+
+    /* ── Side panels (left = all-time, right = rules) ── */
+    .side-panel {
+      position: sticky;
+      top: 34px;
+      background: #fafafa;
+      border: 1.5px solid #ececec;
+      border-radius: 18px;
+      padding: 20px 18px;
+    }
+
+    .panel-title {
+      font-size: 13px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+      text-transform: uppercase;
+      color: #111;
+      margin-bottom: 16px;
+    }
+
+    /* ── All-time stat rows ── */
+    .at-stats { display: flex; flex-direction: column; }
+
+    .at-row {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      gap: 10px;
+      padding: 10px 0;
+      border-bottom: 1px solid #ededed;
+    }
+    .at-row:last-child { border-bottom: none; }
+
+    .at-label {
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: #aaa;
+    }
+    .at-val {
+      font-size: 16px;
+      font-weight: 800;
+      color: #111;
+      letter-spacing: -0.3px;
+    }
+    .at-val.pos { color: #16a34a; }
+    .at-val.neg { color: #dc2626; }
+
+    /* ── Win-rate ring ── */
+    .at-ring-wrap {
+      position: relative;
+      width: 150px;
+      height: 150px;
+      margin: 22px auto 4px;
+    }
+    .at-ring { width: 100%; height: 100%; transform: rotate(-90deg); }
+    .at-ring .ring-bg {
+      fill: none;
+      stroke: #ececec;
+      stroke-width: 11;
+    }
+    .at-ring .ring-fg {
+      fill: none;
+      stroke: #16a34a;
+      stroke-width: 11;
+      stroke-linecap: round;
+      transition: stroke-dashoffset 0.7s cubic-bezier(.4,0,.2,1), stroke 0.3s;
+    }
+    .at-ring-center {
+      position: absolute;
+      inset: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      pointer-events: none;
+    }
+    .at-ring-num {
+      font-size: 30px;
+      font-weight: 800;
+      color: #111;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+    .at-ring-cap {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+      color: #aaa;
+      margin-top: 5px;
+    }
+
+    /* ── Rules panel ── */
+    .rules-q {
+      font-size: 16px;
+      font-weight: 800;
+      color: #111;
+      line-height: 1.32;
+      letter-spacing: -0.3px;
+      margin-bottom: 4px;
+    }
+    .rules-sub {
+      font-size: 11px;
+      color: #b0b0b0;
+      font-weight: 600;
+      margin-bottom: 16px;
+    }
+
+    .rules-list { display: flex; flex-direction: column; gap: 9px; }
+
+    .rule-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+    .rule-num {
+      flex: 0 0 22px;
+      height: 22px;
+      margin-top: 7px;
+      border-radius: 7px;
+      background: #fff;
+      border: 1.5px solid #e6e6e6;
+      font-size: 11px;
+      font-weight: 800;
+      color: #999;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .rule-input {
+      flex: 1 1 auto;
+      width: 100%;
+      border: 1.5px solid #ebebeb;
+      border-radius: 9px;
+      padding: 8px 11px;
+      font-size: 13px;
+      line-height: 1.45;
+      color: #111;
+      font-family: inherit;
+      outline: none;
+      resize: none;
+      overflow: hidden;
+      min-height: 36px;
+      background: #fff;
+      transition: border-color 0.15s;
+    }
+    .rule-input:focus { border-color: #555; }
+    .rule-row.filled .rule-num {
+      background: #111;
+      border-color: #111;
+      color: #fff;
+    }
+
+    .rules-save-btn {
+      width: 100%;
+      margin-top: 16px;
+      background: #111;
+      color: #fff;
+      border: none;
+      border-radius: 11px;
+      padding: 12px;
+      font-size: 13px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      letter-spacing: 0.2px;
+      transition: background 0.15s, transform 0.1s;
+    }
+    .rules-save-btn:hover { background: #2a2a2a; }
+    .rules-save-btn:active { transform: scale(0.99); }
+    .rules-save-btn:disabled { background: #ccc; cursor: not-allowed; transform: none; }
+
+    /* ── Responsive: stack panels under the calendar ── */
+    @media (max-width: 1180px) {
+      .page {
+        grid-template-columns: 1fr;
+        max-width: 680px;
+        gap: 22px;
+      }
+      .side-panel { position: static; }
+      .app          { order: 1; }
+      .rules-panel  { order: 2; }
+      .alltime-panel{ order: 3; }
     }
 
     /* ── Header ── */
@@ -78,6 +275,7 @@
     body.viewer-mode .save-btn,
     body.viewer-mode #changePhotoBtn,
     body.viewer-mode .img-placeholder,
+    body.viewer-mode .rules-save-btn,
     body.viewer-mode #imgDrop .drop-hint { display: none !important; }
     /* images always visible to viewers */
     body.viewer-mode .img-drop { cursor: default; pointer-events: none; }
@@ -569,50 +767,86 @@
   </style>
 </head>
 <body>
-  <div class="app">
-    <div class="app-header">
-      <span class="app-title">Trade Journal</span>
-      <button class="admin-btn" id="adminBtn" title="Admin login">
-        <span id="adminBtnIcon">🔒</span>
-        <span id="adminBtnLabel">Admin</span>
-      </button>
+  <div class="page">
+
+    <!-- ── LEFT: All-time summary ── -->
+    <aside class="side-panel alltime-panel">
+      <div class="panel-title">All Time</div>
+      <div class="at-stats">
+        <div class="at-row"><span class="at-label">Total P&amp;L</span><span class="at-val" id="atPnl">€0</span></div>
+        <div class="at-row"><span class="at-label">Total Return</span><span class="at-val" id="atPct">—</span></div>
+        <div class="at-row"><span class="at-label">Trades</span><span class="at-val" id="atTrades">0</span></div>
+        <div class="at-row"><span class="at-label">Trading Days</span><span class="at-val" id="atDays">0</span></div>
+        <div class="at-row"><span class="at-label">Best Day</span><span class="at-val pos" id="atBest">—</span></div>
+        <div class="at-row"><span class="at-label">Worst Day</span><span class="at-val neg" id="atWorst">—</span></div>
+      </div>
+      <div class="at-ring-wrap">
+        <svg class="at-ring" viewBox="0 0 120 120">
+          <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+          <circle class="ring-fg" id="atRingFg" cx="60" cy="60" r="52"></circle>
+        </svg>
+        <div class="at-ring-center">
+          <div class="at-ring-num" id="atWinNum">—</div>
+          <div class="at-ring-cap">Win rate</div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ── CENTER: Calendar journal ── -->
+    <div class="app">
+      <div class="app-header">
+        <span class="app-title">Trade Journal</span>
+        <button class="admin-btn" id="adminBtn" title="Admin login">
+          <span id="adminBtnIcon">🔒</span>
+          <span id="adminBtnLabel">Admin</span>
+        </button>
+      </div>
+
+      <div class="month-nav">
+        <button class="nav-btn" id="prevMonth">&#8592;</button>
+        <span class="month-label" id="monthLabel"></span>
+        <button class="nav-btn" id="nextMonth">&#8594;</button>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat-card">
+          <div class="stat-label">Month P&amp;L</div>
+          <div class="stat-value" id="statPnl">€0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Month %</div>
+          <div class="stat-value" id="statPct">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-value" id="statWinrate">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Trades</div>
+          <div class="stat-value" id="statTrades">0</div>
+        </div>
+      </div>
+
+      <div class="weekdays">
+        <div class="weekday">Sun</div>
+        <div class="weekday">Mon</div>
+        <div class="weekday">Tue</div>
+        <div class="weekday">Wed</div>
+        <div class="weekday">Thu</div>
+        <div class="weekday">Fri</div>
+        <div class="weekday">Sat</div>
+      </div>
+      <div class="days-grid" id="daysGrid"></div>
     </div>
 
-    <div class="month-nav">
-      <button class="nav-btn" id="prevMonth">&#8592;</button>
-      <span class="month-label" id="monthLabel"></span>
-      <button class="nav-btn" id="nextMonth">&#8594;</button>
-    </div>
+    <!-- ── RIGHT: Trade entry rules ── -->
+    <aside class="side-panel rules-panel">
+      <div class="rules-q">What rules do we need to enter a trade?</div>
+      <div class="rules-sub" id="rulesSub">My checklist — every trade must pass these</div>
+      <div class="rules-list" id="rulesList"></div>
+      <button class="rules-save-btn" id="rulesSaveBtn">Save rules</button>
+    </aside>
 
-    <div class="stats-bar">
-      <div class="stat-card">
-        <div class="stat-label">Month P&amp;L</div>
-        <div class="stat-value" id="statPnl">€0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Month %</div>
-        <div class="stat-value" id="statPct">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Win Rate</div>
-        <div class="stat-value" id="statWinrate">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Trades</div>
-        <div class="stat-value" id="statTrades">0</div>
-      </div>
-    </div>
-
-    <div class="weekdays">
-      <div class="weekday">Sun</div>
-      <div class="weekday">Mon</div>
-      <div class="weekday">Tue</div>
-      <div class="weekday">Wed</div>
-      <div class="weekday">Thu</div>
-      <div class="weekday">Fri</div>
-      <div class="weekday">Sat</div>
-    </div>
-    <div class="days-grid" id="daysGrid"></div>
   </div>
 
   <!-- Day detail modal -->
@@ -908,6 +1142,7 @@
         label.textContent = 'Admin';
         document.body.classList.add('viewer-mode');
       }
+      if (typeof renderRules === 'function') renderRules();
     }
 
     document.getElementById('adminBtn').addEventListener('click', async () => {
@@ -996,7 +1231,155 @@
       }
 
       computeMonthStats();
+      computeAllTimeStats();
     }
+
+    /* ── All-time summary (left panel) ── */
+    function computeAllTimeStats() {
+      let totalPnl = 0, totalCapital = 0, wins = 0, losses = 0;
+      let totalTrades = 0, tradingDays = 0, best = null, worst = null;
+
+      for (const date in tradesData) {
+        const t = tradesData[date];
+        if (t.profit === '' || t.profit === undefined) continue;
+        const p = parseFloat(t.profit);
+        if (isNaN(p)) continue;
+
+        totalPnl += p;
+        tradingDays++;
+        if (p > 0) wins++; else if (p < 0) losses++;
+
+        const c = parseFloat(t.capital);
+        if (!isNaN(c) && c > 0) totalCapital += c;
+
+        const tt = parseInt(t.trades);
+        if (!isNaN(tt)) totalTrades += tt;
+
+        if (best  === null || p > best)  best  = p;
+        if (worst === null || p < worst) worst = p;
+      }
+
+      const decided   = wins + losses;
+      const winrate   = decided > 0 ? (wins / decided * 100) : null;
+      const pctReturn = totalCapital > 0 ? (totalPnl / totalCapital * 100) : null;
+
+      /* Total P&L */
+      const pnlEl = document.getElementById('atPnl');
+      pnlEl.textContent = totalPnl === 0 ? '€0' : fmtMoney(totalPnl);
+      pnlEl.className = 'at-val' + (totalPnl > 0 ? ' pos' : totalPnl < 0 ? ' neg' : '');
+
+      /* Total return % */
+      const pctEl = document.getElementById('atPct');
+      if (pctReturn === null) { pctEl.textContent = '—'; pctEl.className = 'at-val'; }
+      else {
+        pctEl.textContent = fmtPct(pctReturn);
+        pctEl.className = 'at-val' + (pctReturn > 0 ? ' pos' : pctReturn < 0 ? ' neg' : '');
+      }
+
+      document.getElementById('atTrades').textContent = totalTrades || '0';
+      document.getElementById('atDays').textContent   = tradingDays || '0';
+
+      const bestEl  = document.getElementById('atBest');
+      const worstEl = document.getElementById('atWorst');
+      bestEl.textContent  = best  === null ? '—' : fmtMoney(best);
+      worstEl.textContent = worst === null ? '—' : fmtMoney(worst);
+
+      /* Win-rate ring */
+      const C   = 2 * Math.PI * 52;          /* r = 52 */
+      const fg  = document.getElementById('atRingFg');
+      const num = document.getElementById('atWinNum');
+      const wr  = winrate === null ? 0 : winrate;
+      fg.style.strokeDasharray  = C;
+      fg.style.strokeDashoffset = C * (1 - wr / 100);
+      fg.style.stroke = (winrate !== null && winrate >= 50) ? '#16a34a' : '#dc2626';
+      num.textContent = winrate === null ? '—' : winrate.toFixed(0) + '%';
+    }
+
+    /* ── Trade-entry rules (right panel) ── */
+    const RULES_COUNT = 10;
+    let rulesData = [];    /* [{id, text}] */
+
+    async function loadRules() {
+      try {
+        const r = await fetch('/api/rules', { cache: 'no-store' });
+        if (r.ok) rulesData = await r.json();
+      } catch { /* offline → empty */ }
+      renderRules();
+    }
+
+    function renderRules() {
+      const list = document.getElementById('rulesList');
+      if (!list) return;
+      const byId = {};
+      rulesData.forEach(x => { byId[x.id] = x.text || ''; });
+
+      list.innerHTML = '';
+      for (let i = 1; i <= RULES_COUNT; i++) {
+        const val = byId[i] || '';
+
+        const row = document.createElement('div');
+        row.className = 'rule-row' + (val.trim() ? ' filled' : '');
+
+        const num = document.createElement('span');
+        num.className = 'rule-num';
+        num.textContent = i;
+
+        const ta = document.createElement('textarea');
+        ta.className   = 'rule-input';
+        ta.dataset.id  = i;
+        ta.rows        = 1;
+        ta.value       = val;
+        ta.placeholder = isAdmin() ? ('Rule ' + i + '…') : '';
+
+        ta.addEventListener('input', () => {
+          autoGrow(ta);
+          row.classList.toggle('filled', !!ta.value.trim());
+        });
+
+        row.appendChild(num);
+        row.appendChild(ta);
+        list.appendChild(row);
+        autoGrow(ta);
+      }
+
+      const sub = document.getElementById('rulesSub');
+      if (sub) sub.textContent = isAdmin()
+        ? 'Edit your checklist — every trade must pass these'
+        : 'My checklist — every trade must pass these';
+    }
+
+    async function saveRules() {
+      const pw = adminPw();
+      if (!pw) { toast('Admin only.', true); return; }
+
+      const btn = document.getElementById('rulesSaveBtn');
+      btn.disabled = true;
+      btn.textContent = 'Saving…';
+
+      const rules = [];
+      document.querySelectorAll('.rule-input').forEach(ta => {
+        rules.push({ id: parseInt(ta.dataset.id), text: ta.value });
+      });
+
+      try {
+        const r = await fetch('/api/rules', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+          body: JSON.stringify({ rules }),
+        });
+        if (!r.ok) throw new Error('Save failed');
+        rulesData = rules;
+        renderRules();
+        toast('Rules saved!');
+      } catch {
+        toast('Failed to save rules — try again.', true);
+      }
+
+      btn.disabled = false;
+      btn.textContent = 'Save rules';
+    }
+
+    document.getElementById('rulesSaveBtn').addEventListener('click', saveRules);
 
     /* ── Modal ── */
     async function openModal(dateStr) {
@@ -1207,6 +1590,7 @@
       refreshAdminUI();   /* set viewer/admin mode immediately */
       await loadAllTrades();
       renderCalendar();
+      await loadRules();
     })();
 
     /* ── Auto-grow textareas as you type ── */
