@@ -764,6 +764,56 @@
       transform: translateX(-50%) translateY(0);
     }
     .toast.err { background: #dc2626; }
+
+    /* ──────────────────────────────────────────────
+       DESKTOP: fit the whole calendar on one screen.
+       No page scrolling — the day grid shrinks to fill
+       the remaining height. Mobile/tablet (≤1180px) is
+       untouched and stays normally scrollable.
+       ────────────────────────────────────────────── */
+    @media (min-width: 1181px) {
+      html, body { height: 100%; overflow: hidden; }
+
+      .page {
+        height: 100vh;
+        padding-top: 22px;
+        padding-bottom: 22px;
+        align-items: stretch;     /* all 3 columns share the same height */
+      }
+
+      /* Side panels stretch to full height so there's no empty gap
+         beside the calendar; scroll internally only if overfull. */
+      .side-panel {
+        position: static;
+        height: 100%;
+        overflow-y: auto;
+      }
+
+      /* Center column becomes a flex stack; the grid eats leftover space */
+      .app {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+      }
+      .app-header { margin-bottom: 16px; }
+      .month-nav  { margin-bottom: 12px; }
+      .stats-bar  { margin-bottom: 14px; }
+      .weekdays   { margin-bottom: 6px; }
+
+      /* Grid fills remaining height; rows divide it evenly */
+      .days-grid {
+        flex: 1 1 auto;
+        min-height: 0;
+        grid-auto-rows: 1fr;
+      }
+
+      /* Drop the forced square so cells can shrink to fit the screen */
+      .day-cell {
+        aspect-ratio: auto;
+        min-height: 0;
+      }
+    }
   </style>
 </head>
 <body>
