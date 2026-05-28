@@ -5,20 +5,9 @@
  * D1 binding name: DB
  * Expected env var: ADMIN_PASSWORD
  *
- * D1 schema (run once via Cloudflare dashboard or wrangler):
- *   CREATE TABLE IF NOT EXISTS trades (
- *     date      TEXT PRIMARY KEY,
- *     profit    TEXT,
- *     percent   TEXT,
- *     capital   TEXT,
- *     rr        TEXT,
- *     trades    TEXT,
- *     market    TEXT,
- *     nBefore   TEXT,
- *     nAfter    TEXT,
- *     nSummary  TEXT,
- *     hasImage  INTEGER DEFAULT 0
- *   );
+ * Required columns (run add-notes-columns.sql once if upgrading):
+ *   date, profit, percent, capital, rr, trades, market,
+ *   nBefore, nEntry, nClose, nAfter, nSummary, hasImage
  */
 
 const CORS = {
@@ -53,6 +42,8 @@ export async function onRequestGet({ env }) {
         trades:   row.trades   ?? '',
         market:   row.market   ?? '',
         nBefore:  row.nBefore  ?? '',
+        nEntry:   row.nEntry   ?? '',
+        nClose:   row.nClose   ?? '',
         nAfter:   row.nAfter   ?? '',
         nSummary: row.nSummary ?? '',
         hasImage: !!row.hasImage,
@@ -74,8 +65,8 @@ export async function onRequestPost({ request, env }) {
     if (!t.date) return json({ error: 'Missing date' }, 400);
 
     await env.DB.prepare(`
-      INSERT INTO trades (date, profit, percent, capital, rr, trades, market, nBefore, nAfter, nSummary, hasImage)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO trades (date, profit, percent, capital, rr, trades, market, nBefore, nEntry, nClose, nAfter, nSummary, hasImage)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       ON CONFLICT(date) DO UPDATE SET
         profit   = excluded.profit,
         percent  = excluded.percent,
@@ -84,6 +75,8 @@ export async function onRequestPost({ request, env }) {
         trades   = excluded.trades,
         market   = excluded.market,
         nBefore  = excluded.nBefore,
+        nEntry   = excluded.nEntry,
+        nClose   = excluded.nClose,
         nAfter   = excluded.nAfter,
         nSummary = excluded.nSummary,
         hasImage = excluded.hasImage
@@ -96,6 +89,8 @@ export async function onRequestPost({ request, env }) {
       t.trades   ?? '',
       t.market   ?? '',
       t.nBefore  ?? '',
+      t.nEntry   ?? '',
+      t.nClose   ?? '',
       t.nAfter   ?? '',
       t.nSummary ?? '',
       t.hasImage ? 1 : 0,
