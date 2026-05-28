@@ -31,9 +31,121 @@
     .app {
       position: relative;
       z-index: 1;
-      max-width: 1060px;
+      display: grid;
+      grid-template-columns: 280px 1fr 280px;
+      gap: 24px;
+      max-width: 1600px;
       margin: 0 auto;
       padding: 36px 20px 60px;
+    }
+
+    /* Side Panels */
+    .side-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .panel-header {
+      font-size: 16px;
+      font-weight: 800;
+      color: #111;
+      letter-spacing: -0.4px;
+      padding: 12px 0;
+      border-bottom: 2px solid #facc15;
+    }
+
+    /* Left Panel - All Time Stats */
+    .left-panel {
+      background: #fafafa;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1.5px solid #ececec;
+    }
+
+    .all-time-stats {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .stat-item {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .stat-item .stat-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #aaa;
+    }
+
+    .stat-big {
+      font-size: 24px;
+      font-weight: 800;
+      color: #111;
+      letter-spacing: -0.5px;
+    }
+
+    .stat-big.pos { color: #16a34a; }
+    .stat-big.neg { color: #dc2626; }
+
+    .wins-losses {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 18px;
+    }
+
+    .wins-losses .separator { color: #ccc; font-weight: 400; }
+
+    /* Right Panel - Trading Rules */
+    .right-panel {
+      background: #fafafa;
+      border-radius: 16px;
+      padding: 20px;
+      border: 1.5px solid #ececec;
+    }
+
+    .rules-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .rule-item {
+      display: flex;
+      gap: 8px;
+      padding: 8px;
+      background: #fff;
+      border-radius: 8px;
+      border: 1px solid #f0f0f0;
+      font-size: 12px;
+      line-height: 1.4;
+      align-items: flex-start;
+    }
+
+    .rule-number {
+      font-weight: 700;
+      color: #facc15;
+      min-width: 18px;
+      flex-shrink: 0;
+    }
+
+    .rule-text {
+      color: #555;
+      flex: 1;
+      word-break: break-word;
+    }
+
+    /* Center Content */
+    .center-content {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
     }
 
     /* ── Header ── */
@@ -51,7 +163,6 @@
       color: #111;
     }
 
-    /* ── Admin badge / login button ── */
     .admin-btn {
       background: none;
       border: 1.5px solid #e2e2e2;
@@ -73,20 +184,6 @@
       background: #f0fdf4;
     }
     .admin-btn.is-admin:hover { background: #dcfce7; }
-
-    /* ── Viewer mode (non-admin): make modal read-only ── */
-    body.viewer-mode .save-btn,
-    body.viewer-mode #changePhotoBtn,
-    body.viewer-mode .img-placeholder,
-    body.viewer-mode #imgDrop .drop-hint { display: none !important; }
-    /* images always visible to viewers */
-    body.viewer-mode .img-drop { cursor: default; pointer-events: none; }
-    body.viewer-mode .img-drop.has-image { pointer-events: auto; cursor: zoom-in; }
-    body.viewer-mode input,
-    body.viewer-mode textarea { pointer-events: none; background: #f9f9f9 !important; }
-    body.viewer-mode .day-cell { cursor: default; }
-    body.viewer-mode .day-cell.has-trade { cursor: pointer; }
-    body.viewer-mode .day-cell:hover:not(.has-trade) { transform: none; background: #fafafa; }
 
     /* ── Month nav ── */
     .month-nav {
@@ -213,14 +310,12 @@
       border-style: solid;
     }
 
-    /* Today wins over weekend — declared AFTER .weekend on purpose */
     .day-cell.today {
       border-color: #111;
       border-width: 2px;
       background: #fff;
     }
 
-    /* Edge glow — layered box-shadow only, no bg fill */
     .day-cell.profit {
       box-shadow:
         0 0 0 2px rgba(22, 163, 74, 0.55),
@@ -319,7 +414,6 @@
     }
     .close-btn:hover { background: #e8e8e8; color: #222; }
 
-    /* ── Modal two-column layout ── */
     .modal-cols {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -494,10 +588,6 @@
 
     .note-field.full { grid-column: 1 / -1; }
 
-    @media (max-width: 580px) {
-      .notes-grid { grid-template-columns: 1fr; }
-    }
-
     .note-field { display: flex; flex-direction: column; gap: 5px; }
 
     .note-field label {
@@ -566,53 +656,98 @@
       transform: translateX(-50%) translateY(0);
     }
     .toast.err { background: #dc2626; }
+
+    @media (max-width: 768px) {
+      .app {
+        grid-template-columns: 1fr;
+      }
+      .side-panel {
+        display: none;
+      }
+    }
   </style>
 </head>
 <body>
   <div class="app">
-    <div class="app-header">
-      <span class="app-title">Trade Journal</span>
-      <button class="admin-btn" id="adminBtn" title="Admin login">
-        <span id="adminBtnIcon">🔒</span>
-        <span id="adminBtnLabel">Admin</span>
-      </button>
-    </div>
-
-    <div class="month-nav">
-      <button class="nav-btn" id="prevMonth">&#8592;</button>
-      <span class="month-label" id="monthLabel"></span>
-      <button class="nav-btn" id="nextMonth">&#8594;</button>
-    </div>
-
-    <div class="stats-bar">
-      <div class="stat-card">
-        <div class="stat-label">Month P&amp;L</div>
-        <div class="stat-value" id="statPnl">€0</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Month %</div>
-        <div class="stat-value" id="statPct">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Win Rate</div>
-        <div class="stat-value" id="statWinrate">—</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Trades</div>
-        <div class="stat-value" id="statTrades">0</div>
+    <!-- Left Panel - All Time Stats -->
+    <div class="side-panel left-panel">
+      <div class="panel-header">All Time</div>
+      <div class="all-time-stats">
+        <div class="stat-item">
+          <div class="stat-label">Total P&L</div>
+          <div class="stat-big" id="allTimePnl">+€0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-big" id="allTimeWinrate">—</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Trades</div>
+          <div class="stat-big" id="allTimeTrades">0</div>
+        </div>
+        <div class="stat-item">
+          <div class="stat-label">Wins / Losses</div>
+          <div class="wins-losses">
+            <span class="pos" id="allTimeWins">0</span>
+            <span class="separator">/</span>
+            <span class="neg" id="allTimeLosses">0</span>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="weekdays">
-      <div class="weekday">Sun</div>
-      <div class="weekday">Mon</div>
-      <div class="weekday">Tue</div>
-      <div class="weekday">Wed</div>
-      <div class="weekday">Thu</div>
-      <div class="weekday">Fri</div>
-      <div class="weekday">Sat</div>
+    <!-- Center Content -->
+    <div class="center-content">
+      <div class="app-header">
+        <span class="app-title">Trade Journal</span>
+        <button class="admin-btn" id="adminBtn" title="Admin login">
+          <span id="adminBtnIcon">🔒</span>
+          <span id="adminBtnLabel">Admin</span>
+        </button>
+      </div>
+
+      <div class="month-nav">
+        <button class="nav-btn" id="prevMonth">&#8592;</button>
+        <span class="month-label" id="monthLabel"></span>
+        <button class="nav-btn" id="nextMonth">&#8594;</button>
+      </div>
+
+      <div class="stats-bar">
+        <div class="stat-card">
+          <div class="stat-label">Month P&L</div>
+          <div class="stat-value" id="statPnl">€0</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Month %</div>
+          <div class="stat-value" id="statPct">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Win Rate</div>
+          <div class="stat-value" id="statWinrate">—</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Trades</div>
+          <div class="stat-value" id="statTrades">0</div>
+        </div>
+      </div>
+
+      <div class="weekdays">
+        <div class="weekday">Sun</div>
+        <div class="weekday">Mon</div>
+        <div class="weekday">Tue</div>
+        <div class="weekday">Wed</div>
+        <div class="weekday">Thu</div>
+        <div class="weekday">Fri</div>
+        <div class="weekday">Sat</div>
+      </div>
+      <div class="days-grid" id="daysGrid"></div>
     </div>
-    <div class="days-grid" id="daysGrid"></div>
+
+    <!-- Right Panel - Trading Rules -->
+    <div class="side-panel right-panel">
+      <div class="panel-header">Trading Rules</div>
+      <div class="rules-list" id="rulesList"></div>
+    </div>
   </div>
 
   <!-- Day detail modal -->
@@ -725,9 +860,9 @@
     let now        = new Date();
     let viewYear   = now.getFullYear();
     let viewMonth  = now.getMonth();
-    let tradesData = {};       // { 'YYYY-MM-DD': {profit,percent,...} }
+    let tradesData = {};
     let activeDate = null;
-    let pendingImg = null;     // base64 of newly-selected image
+    let pendingImg = null;
     let hasExistingImg = false;
 
     /* ── Helpers ── */
@@ -743,7 +878,6 @@
       return (v >= 0 ? '+' : '') + Number(v).toFixed(2) + '%';
     }
 
-    /* Auto-calc % from profit / capital */
     function recalcPercent() {
       const p = parseFloat(document.getElementById('fProfit').value);
       const c = parseFloat(document.getElementById('fCapital').value);
@@ -755,7 +889,6 @@
       }
     }
 
-    /* ── Month stats — top bar P&L / win rate / etc. ── */
     function computeMonthStats() {
       const prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
       let totalPnl = 0, totalCapital = 0, wins = 0, losses = 0, totalTrades = 0;
@@ -783,12 +916,10 @@
       const winrate    = tradingDays > 0 ? (wins / tradingDays * 100) : null;
       const pctReturn  = totalCapital > 0 ? (totalPnl / totalCapital * 100) : null;
 
-      /* P&L */
       const pnlEl = document.getElementById('statPnl');
       pnlEl.textContent = totalPnl === 0 ? '€0' : fmtMoney(totalPnl);
       pnlEl.className = 'stat-value' + (totalPnl > 0 ? ' pos' : totalPnl < 0 ? ' neg' : '');
 
-      /* % */
       const pctEl = document.getElementById('statPct');
       if (pctReturn === null) {
         pctEl.textContent = '—';
@@ -798,7 +929,6 @@
         pctEl.className = 'stat-value' + (pctReturn > 0 ? ' pos' : pctReturn < 0 ? ' neg' : '');
       }
 
-      /* Win rate */
       const wrEl = document.getElementById('statWinrate');
       if (winrate === null) {
         wrEl.textContent = '—';
@@ -808,11 +938,44 @@
         wrEl.className = 'stat-value' + (winrate >= 50 ? ' pos' : ' neg');
       }
 
-      /* Total trades */
       document.getElementById('statTrades').textContent = totalTrades || '0';
     }
 
-    /* ── Toast ── */
+    function computeAllTimeStats() {
+      let allTimePnl = 0, allTimeCapital = 0, allTimeWins = 0, allTimeLosses = 0, allTimeTrades = 0;
+
+      for (const date in tradesData) {
+        const t = tradesData[date];
+        if (t.profit === '' || t.profit === undefined) continue;
+
+        const p = parseFloat(t.profit);
+        if (isNaN(p)) continue;
+
+        allTimePnl += p;
+        if (p > 0) allTimeWins++;
+        else if (p < 0) allTimeLosses++;
+
+        const c = parseFloat(t.capital);
+        if (!isNaN(c) && c > 0) allTimeCapital += c;
+
+        const tt = parseInt(t.trades);
+        if (!isNaN(tt)) allTimeTrades += tt;
+      }
+
+      const allTimeTradingDays = allTimeWins + allTimeLosses;
+      const allTimeWinrate = allTimeTradingDays > 0 ? (allTimeWins / allTimeTradingDays * 100) : null;
+
+      document.getElementById('allTimePnl').textContent = fmtMoney(allTimePnl);
+      document.getElementById('allTimePnl').className = 'stat-big' + (allTimePnl > 0 ? ' pos' : allTimePnl < 0 ? ' neg' : '');
+      
+      document.getElementById('allTimeWinrate').textContent = allTimeWinrate === null ? '—' : allTimeWinrate.toFixed(0) + '%';
+      document.getElementById('allTimeWinrate').className = 'stat-big' + (allTimeWinrate ? (allTimeWinrate >= 50 ? ' pos' : ' neg') : '');
+      
+      document.getElementById('allTimeTrades').textContent = allTimeTrades || '0';
+      document.getElementById('allTimeWins').textContent = allTimeWins;
+      document.getElementById('allTimeLosses').textContent = allTimeLosses;
+    }
+
     let toastTimer;
     function toast(msg, isErr = false) {
       const el = document.getElementById('toast');
@@ -822,117 +985,67 @@
       toastTimer = setTimeout(() => el.classList.remove('show'), 3000);
     }
 
-    /* ── Storage: Cloudflare D1 (text) + R2 (images) via Pages Functions ── */
     const CACHE_KEY = 'tradejournal_cache';
-    const PW_KEY    = 'tradejournal_admin_pw';
+    const RULES_KEY = 'tradejournal_rules';
 
-    function adminPw()      { return sessionStorage.getItem(PW_KEY) || ''; }
-    function isAdmin()      { return !!adminPw(); }
-    function setAdminPw(pw) { sessionStorage.setItem(PW_KEY, pw); }
-    function clearAdminPw() { sessionStorage.removeItem(PW_KEY); }
-
-    /* Verify password: POST a lightweight auth-check endpoint */
-    async function verifyAdminPw(pw) {
-      try {
-        const r = await fetch('/api/auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ password: pw }),
-        });
-        return r.ok;
-      } catch { return false; }
-    }
-
-    /* Load all trades — public, no auth */
-    async function loadAllTrades() {
-      /* Instant render from localStorage cache */
+    function loadAllTrades() {
       const cached = localStorage.getItem(CACHE_KEY);
       if (cached) {
         try { tradesData = JSON.parse(cached); } catch { tradesData = {}; }
       }
-      /* Always refresh from server (public endpoint) */
-      try {
-        const r = await fetch('/api/trades', { cache: 'no-store' });
-        if (r.ok) {
-          const txt = await r.text();
-          tradesData = JSON.parse(txt);
-          localStorage.setItem(CACHE_KEY, txt);
-        }
-      } catch { /* offline → use cache */ }
     }
 
-    /* Images are served publicly from R2 via /api/image/:date */
-    async function loadImage(dateStr) {
-      return '/api/image/' + dateStr + '?t=' + Date.now();
-    }
-
-    /* Save trade data — requires admin password */
-    async function saveTradeData(dateStr, payload) {
-      const pw = adminPw();
-      if (!pw) throw new Error('Not admin');
-      const r = await fetch('/api/trades', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
-        body: JSON.stringify(payload),
-      });
-      if (!r.ok) throw new Error('Save failed: ' + r.status);
-      tradesData[dateStr] = payload;
-      localStorage.setItem(CACHE_KEY, JSON.stringify(tradesData));
-    }
-
-    /* Save image — requires admin password, uploads base64 to R2 */
-    async function saveImage(dateStr, dataUrl) {
-      const pw = adminPw();
-      if (!pw) throw new Error('Not admin');
-      const r = await fetch('/api/image/' + dateStr, {
-        method: 'POST',
-        headers: { 'Content-Type': 'text/plain', 'X-Admin-Password': pw },
-        body: dataUrl,
-      });
-      if (!r.ok) throw new Error('Image save failed: ' + r.status);
-    }
-
-    /* ── Admin UI ── */
-    function refreshAdminUI() {
-      const btn   = document.getElementById('adminBtn');
-      const icon  = document.getElementById('adminBtnIcon');
-      const label = document.getElementById('adminBtnLabel');
-      if (isAdmin()) {
-        btn.classList.add('is-admin');
-        icon.textContent  = '🔓';
-        label.textContent = 'Admin · Logout';
-        document.body.classList.remove('viewer-mode');
+    function loadRules() {
+      const cached = localStorage.getItem(RULES_KEY);
+      if (cached) {
+        try {
+          const rules = JSON.parse(cached);
+          renderRules(rules);
+        } catch { renderRules([]); }
       } else {
-        btn.classList.remove('is-admin');
-        icon.textContent  = '🔒';
-        label.textContent = 'Admin';
-        document.body.classList.add('viewer-mode');
+        renderRules([]);
       }
     }
 
-    document.getElementById('adminBtn').addEventListener('click', async () => {
-      if (isAdmin()) {
-        if (confirm('Log out of admin?')) {
-          clearAdminPw();
-          refreshAdminUI();
-          toast('Logged out.');
-        }
-        return;
-      }
-      const pw = prompt('Admin password:');
-      if (!pw) return;
-      toast('Checking…');
-      const ok = await verifyAdminPw(pw);
-      if (ok) {
-        setAdminPw(pw);
-        refreshAdminUI();
-        toast('Welcome back.');
-      } else {
-        toast('Wrong password.', true);
-      }
-    });
+    function renderRules(rules) {
+      const rulesList = document.getElementById('rulesList');
+      rulesList.innerHTML = '';
+      rules.forEach((rule, idx) => {
+        const ruleDiv = document.createElement('div');
+        ruleDiv.className = 'rule-item';
+        ruleDiv.innerHTML = `
+          <span class="rule-number">${idx + 1}.</span>
+          <span class="rule-text">${rule}</span>
+        `;
+        rulesList.appendChild(ruleDiv);
+      });
 
-    /* ── Calendar ── */
+      // Add input for new rule
+      const inputDiv = document.createElement('div');
+      inputDiv.className = 'rule-item';
+      inputDiv.style.padding = '6px';
+      inputDiv.innerHTML = `
+        <input type="text" id="newRuleInput" placeholder="Add a new rule..." style="flex: 1; border: 1px solid #ddd; border-radius: 6px; padding: 6px; font-size: 12px;">
+        <button id="addRuleBtn" style="margin-left: 6px; padding: 6px 10px; background: #facc15; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; font-size: 12px;">+</button>
+      `;
+      rulesList.appendChild(inputDiv);
+
+      document.getElementById('addRuleBtn').addEventListener('click', () => {
+        const input = document.getElementById('newRuleInput');
+        if (input.value.trim()) {
+          rules.push(input.value.trim());
+          localStorage.setItem(RULES_KEY, JSON.stringify(rules));
+          loadRules();
+        }
+      });
+
+      document.getElementById('newRuleInput').addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') {
+          document.getElementById('addRuleBtn').click();
+        }
+      });
+    }
+
     function renderCalendar() {
       document.getElementById('monthLabel').textContent = MONTHS[viewMonth] + ' ' + viewYear;
       const grid    = document.getElementById('daysGrid');
@@ -968,13 +1081,11 @@
           else if (p < 0) cell.classList.add('loss');
         }
 
-        /* day number top-left */
         const num = document.createElement('div');
         num.className = 'day-num';
         num.textContent = d;
         cell.appendChild(num);
 
-        /* P&L center */
         if (trade && trade.profit !== '' && trade.profit !== undefined) {
           const p = parseFloat(trade.profit);
           const pnlEl = document.createElement('div');
@@ -996,9 +1107,9 @@
       }
 
       computeMonthStats();
+      computeAllTimeStats();
     }
 
-    /* ── Modal ── */
     async function openModal(dateStr) {
       activeDate    = dateStr;
       pendingImg    = null;
@@ -1008,7 +1119,6 @@
       document.getElementById('modalTitle').textContent =
         MONTHS[parseInt(m) - 1] + ' ' + parseInt(d) + ', ' + y;
 
-      /* Reset form */
       document.getElementById('fDate').value    = dateStr;
       document.getElementById('fProfit').value  = '';
       document.getElementById('fPercent').value = '';
@@ -1023,7 +1133,6 @@
       document.getElementById('nSummary').value = '';
       resetImgUI();
 
-      /* Fill from saved data */
       const t = tradesData[dateStr];
       if (t) {
         if (t.profit   !== undefined) document.getElementById('fProfit').value  = t.profit;
@@ -1037,21 +1146,10 @@
         if (t.nClose   !== undefined) document.getElementById('nClose').value   = t.nClose;
         if (t.nAfter   !== undefined) document.getElementById('nAfter').value   = t.nAfter;
         if (t.nSummary !== undefined) document.getElementById('nSummary').value = t.nSummary;
-
-        if (t.hasImage) {
-          hasExistingImg = true;
-          const img = await loadImage(dateStr);
-          if (img) showImgPreview(img);
-        }
       }
 
-      /* Recalculate % from profit/capital (auto-derived) */
       recalcPercent();
-
       document.getElementById('overlay').classList.add('open');
-
-      /* Resize textareas to fit existing notes */
-      document.querySelectorAll('.note-field textarea').forEach(autoGrow);
     }
 
     function closeModal() {
@@ -1059,7 +1157,6 @@
       activeDate = null; pendingImg = null; hasExistingImg = false;
     }
 
-    /* ── Image UI ── */
     function resetImgUI() {
       const preview = document.getElementById('imgPreview');
       const placeholder = document.getElementById('imgPlaceholder');
@@ -1077,8 +1174,6 @@
       preview.src = src;
       preview.style.display = 'block';
       document.getElementById('imgPlaceholder').style.display = 'none';
-      /* Image is now displayed — clicks should reach it (for lightbox),
-         not the file input. Use the "Change photo" button to swap. */
       document.getElementById('fileInput').style.pointerEvents = 'none';
       document.getElementById('imgDrop').classList.add('has-image');
       document.getElementById('changePhotoBtn').classList.add('show');
@@ -1090,7 +1185,6 @@
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
-          /* Compress to max 1200px wide at 80% quality */
           const canvas = document.createElement('canvas');
           const scale  = Math.min(1, 1200 / img.width);
           canvas.width  = Math.round(img.width  * scale);
@@ -1104,7 +1198,6 @@
       reader.readAsDataURL(file);
     }
 
-    /* Drag & drop */
     const imgDrop = document.getElementById('imgDrop');
     imgDrop.addEventListener('dragover',  (e) => { e.preventDefault(); imgDrop.classList.add('drag-over'); });
     imgDrop.addEventListener('dragleave', ()  => imgDrop.classList.remove('drag-over'));
@@ -1115,12 +1208,10 @@
     });
     document.getElementById('fileInput').addEventListener('change', (e) => handleFile(e.target.files[0]));
 
-    /* Change photo button — opens file picker */
     document.getElementById('changePhotoBtn').addEventListener('click', () => {
       document.getElementById('fileInput').click();
     });
 
-    /* Click the image preview → open fullscreen lightbox */
     document.getElementById('imgPreview').addEventListener('click', (e) => {
       e.stopPropagation();
       const src = document.getElementById('imgPreview').src;
@@ -1129,7 +1220,6 @@
       document.getElementById('lightbox').classList.add('open');
     });
 
-    /* Lightbox close — click anywhere on overlay or × button, or press Esc */
     function closeLightbox() {
       document.getElementById('lightbox').classList.remove('open');
     }
@@ -1140,11 +1230,9 @@
       }
     });
 
-    /* Auto-recalc % on every keystroke */
     document.getElementById('fProfit').addEventListener('input', recalcPercent);
     document.getElementById('fCapital').addEventListener('input', recalcPercent);
 
-    /* ── Save ── */
     document.getElementById('saveBtn').addEventListener('click', async () => {
       const btn = document.getElementById('saveBtn');
       btn.disabled = true;
@@ -1169,10 +1257,8 @@
       };
 
       try {
-        await saveTradeData(dateStr, payload);
-        if (pendingImg) await saveImage(dateStr, pendingImg);
-
         tradesData[dateStr] = payload;
+        localStorage.setItem(CACHE_KEY, JSON.stringify(tradesData));
         renderCalendar();
         toast('Saved!');
         setTimeout(closeModal, 600);
@@ -1184,7 +1270,6 @@
       btn.textContent = 'Save Trade';
     });
 
-    /* ── Navigation ── */
     document.getElementById('prevMonth').addEventListener('click', () => {
       viewMonth--;
       if (viewMonth < 0)  { viewMonth = 11; viewYear--; }
@@ -1202,14 +1287,12 @@
       if (e.target === document.getElementById('overlay')) closeModal();
     });
 
-    /* ── Init ── */
     (async () => {
-      refreshAdminUI();   /* set viewer/admin mode immediately */
-      await loadAllTrades();
+      loadAllTrades();
+      loadRules();
       renderCalendar();
     })();
 
-    /* ── Auto-grow textareas as you type ── */
     function autoGrow(ta) {
       ta.style.height = 'auto';
       ta.style.height = ta.scrollHeight + 'px';
