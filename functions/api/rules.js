@@ -1,13 +1,7 @@
 /**
- * GET  /api/trades  → returns all trades as JSON (public, no auth)
- * POST /api/trades  → upserts a trade (requires X-Admin-Password header)
- *
- * D1 binding name: DB
- * Expected env var: ADMIN_PASSWORD
- *
- * Required columns (run add-notes-columns.sql once if upgrading):
- *   date, profit, percent, capital, rr, trades, market,
- *   nBefore, nEntry, nClose, nAfter, nSummary, hasImage
+ * GET  /api/rules → returns [{id, text}, ...] for id 1..10. Public.
+ * POST /api/rules → upserts all rules. Admin only.
+ * Body: { rules: [{ id: 1, text: '...' }, ...] }
  */
  
 const CORS = {
@@ -27,74 +21,39 @@ function isAuthed(request, env) {
   return request.headers.get('X-Admin-Password') === env.ADMIN_PASSWORD;
 }
  
-/* ── GET: return all trades as { 'YYYY-MM-DD': {...}, ... } ── */
 export async function onRequestGet({ env }) {
   try {
-    const { results } = await env.DB.prepare('SELECT * FROM trades').all();
-    const out = {};
-    for (const row of results) {
-      out[row.date] = {
-        date:     row.date,
-        profit:   row.profit   ?? '',
-        percent:  row.percent  ?? '',
-        capital:  row.capital  ?? '',
-        rr:       row.rr       ?? '',
-        trades:   row.trades   ?? '',
-        market:   row.market   ?? '',
-        nBefore:  row.nBefore  ?? '',
-        nEntry:   row.nEntry   ?? '',
-        nClose:   row.nClose   ?? '',
-        nAfter:   row.nAfter   ?? '',
-        nSummary: row.nSummary ?? '',
-        hasImage: !!row.hasImage,
-      };
-    }
-    return json(out);
+    const { results } = await env.DB
+      .prepare('SELECT id, text FROM rules ORDER BY id')
+      .all();
+    return json(results || []);
   } catch (e) {
     return json({ error: e.message }, 500);
   }
 }
  
-/* ── POST: upsert a trade (admin only) ── */
 export async function onRequestPost({ request, env }) {
   if (!isAuthed(request, env)) {
     return json({ error: 'Unauthorized' }, 401);
   }
   try {
-    const t = await request.json();
-    if (!t.date) return json({ error: 'Missing date' }, 400);
+    const body  = await request.json();
+    const rules = Array.isArray(body) ? body : (body && body.rules);
+    if (!Array.isArray(rules)) {
+      return json({ error: 'Expected { rules: [...] }' }, 400);
+    }
  
-    await env.DB.prepare(`
-      INSERT INTO trades (date, profit, percent, capital, rr, trades, market, nBefore, nEntry, nClose, nAfter, nSummary, hasImage)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      ON CONFLICT(date) DO UPDATE SET
-        profit   = excluded.profit,
-        percent  = excluded.percent,
-        capital  = excluded.capital,
-        rr       = excluded.rr,
-        trades   = excluded.trades,
-        market   = excluded.market,
-        nBefore  = excluded.nBefore,
-        nEntry   = excluded.nEntry,
-        nClose   = excluded.nClose,
-        nAfter   = excluded.nAfter,
-        nSummary = excluded.nSummary,
-        hasImage = excluded.hasImage
-    `).bind(
-      t.date,
-      t.profit   ?? '',
-      t.percent  ?? '',
-      t.capital  ?? '',
-      t.rr       ?? '',
-      t.trades   ?? '',
-      t.market   ?? '',
-      t.nBefore  ?? '',
-      t.nEntry   ?? '',
-      t.nClose   ?? '',
-      t.nAfter   ?? '',
-      t.nSummary ?? '',
-      t.hasImage ? 1 : 0,
-    ).run();
+    for (const r of rules) {
+      const id = parseInt(r && r.id);
+      if (!Number.isInteger(id) || id < 1 || id > 10) continue;
+      await env.DB.prepare(`
+        INSERT INTO rules (id, text, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(id) DO UPDATE SET
+          text       = excluded.text,
+          updated_at = excluded.updated_at
+      `).bind(id, String((r && r.text) ?? ''), Date.now()).run();
+    }
  
     return json({ ok: true });
   } catch (e) {
@@ -105,4 +64,3 @@ export async function onRequestPost({ request, env }) {
 export async function onRequestOptions() {
   return new Response(null, { status: 204, headers: CORS });
 }
- 
