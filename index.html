@@ -1302,16 +1302,21 @@
     async function loadRules() {
       try {
         const r = await fetch('/api/rules', { cache: 'no-store' });
-        if (r.ok) rulesData = await r.json();
+        if (r.ok) {
+          const data = await r.json();
+          rulesData = Array.isArray(data) ? data : [];
+        }
       } catch { /* offline → empty */ }
+      if (!Array.isArray(rulesData)) rulesData = [];
       renderRules();
     }
 
     function renderRules() {
       const list = document.getElementById('rulesList');
       if (!list) return;
+      const arr = Array.isArray(rulesData) ? rulesData : [];
       const byId = {};
-      rulesData.forEach(x => { byId[x.id] = x.text || ''; });
+      arr.forEach(x => { if (x && x.id) byId[x.id] = x.text || ''; });
 
       list.innerHTML = '';
       for (let i = 1; i <= RULES_COUNT; i++) {
