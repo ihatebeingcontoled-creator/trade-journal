@@ -271,8 +271,30 @@
     }
     .admin-btn.is-admin:hover { background: #dcfce7; }
 
+    /* ── Sync-from-broker button (admin only) ── */
+    .sync-btn {
+      background: #111;
+      border: 1.5px solid #111;
+      border-radius: 8px;
+      padding: 7px 13px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #fff;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: background 0.15s, opacity 0.15s;
+    }
+    .sync-btn:hover { background: #333; }
+    .sync-btn:disabled { opacity: 0.55; cursor: default; }
+    .sync-btn .spin { display: inline-block; animation: syncspin 0.8s linear infinite; }
+    @keyframes syncspin { to { transform: rotate(360deg); } }
+    .head-actions { display: flex; align-items: center; gap: 10px; }
+
     /* ── Viewer mode (non-admin): make modal read-only ── */
     body.viewer-mode .save-btn,
+    body.viewer-mode .sync-btn,
     body.viewer-mode #changePhotoBtn,
     body.viewer-mode .img-placeholder,
     body.viewer-mode .rules-save-btn,
@@ -764,56 +786,6 @@
       transform: translateX(-50%) translateY(0);
     }
     .toast.err { background: #dc2626; }
-
-    /* ──────────────────────────────────────────────
-       DESKTOP: fit the whole calendar on one screen.
-       No page scrolling — the day grid shrinks to fill
-       the remaining height. Mobile/tablet (≤1180px) is
-       untouched and stays normally scrollable.
-       ────────────────────────────────────────────── */
-    @media (min-width: 1181px) {
-      html, body { height: 100%; overflow: hidden; }
-
-      .page {
-        height: 100vh;
-        padding-top: 22px;
-        padding-bottom: 22px;
-        align-items: stretch;     /* all 3 columns share the same height */
-      }
-
-      /* Side panels stretch to full height so there's no empty gap
-         beside the calendar; scroll internally only if overfull. */
-      .side-panel {
-        position: static;
-        height: 100%;
-        overflow-y: auto;
-      }
-
-      /* Center column becomes a flex stack; the grid eats leftover space */
-      .app {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        min-height: 0;
-      }
-      .app-header { margin-bottom: 16px; }
-      .month-nav  { margin-bottom: 12px; }
-      .stats-bar  { margin-bottom: 14px; }
-      .weekdays   { margin-bottom: 6px; }
-
-      /* Grid fills remaining height; rows divide it evenly */
-      .days-grid {
-        flex: 1 1 auto;
-        min-height: 0;
-        grid-auto-rows: 1fr;
-      }
-
-      /* Drop the forced square so cells can shrink to fit the screen */
-      .day-cell {
-        aspect-ratio: auto;
-        min-height: 0;
-      }
-    }
   </style>
 </head>
 <body>
@@ -846,10 +818,16 @@
     <div class="app">
       <div class="app-header">
         <span class="app-title">Trade Journal</span>
-        <button class="admin-btn" id="adminBtn" title="Admin login">
-          <span id="adminBtnIcon">🔒</span>
-          <span id="adminBtnLabel">Admin</span>
-        </button>
+        <div class="head-actions">
+          <button class="sync-btn" id="syncBtn" title="Pull closed trades from Capital.com">
+            <span id="syncBtnIcon">⟳</span>
+            <span id="syncBtnLabel">Sync</span>
+          </button>
+          <button class="admin-btn" id="adminBtn" title="Admin login">
+            <span id="adminBtnIcon">🔒</span>
+            <span id="adminBtnLabel">Admin</span>
+          </button>
+        </div>
       </div>
 
       <div class="month-nav">
@@ -1216,6 +1194,50 @@
         toast('Wrong password.', true);
       }
     });
+
+    /* ── Sync from Capital.com ── */
+    async function syncFromBroker() {
+      const pw = adminPw();
+      if (!pw) { toast('Log in as admin first.', true); return; }
+
+      const btn   = document.getElementById('syncBtn');
+      const icon  = document.getElementById('syncBtnIcon');
+      const label = document.getElementById('syncBtnLabel');
+      btn.disabled = true;
+      icon.classList.add('spin');
+      label.textContent = 'Syncing…';
+
+      try {
+        const r = await fetch('/api/sync', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+          body: JSON.stringify({}),
+        });
+        const data = await r.json().catch(() => ({}));
+
+        if (!r.ok || !data.ok) {
+          throw new Error(data.error || ('Sync failed: ' + r.status));
+        }
+
+        if (data.days === 0) {
+          toast('No new closed trades found.');
+        } else {
+          toast(`Synced ${data.days} day${data.days === 1 ? '' : 's'} · ${data.trades} trade${data.trades === 1 ? '' : 's'}.`);
+          /* Reload from server and repaint everything */
+          await loadAllTrades();
+          renderCalendar();
+          computeMonthStats();
+          if (typeof computeAllTimeStats === 'function') computeAllTimeStats();
+        }
+      } catch (err) {
+        toast(err.message || 'Sync failed.', true);
+      } finally {
+        btn.disabled = false;
+        icon.classList.remove('spin');
+        label.textContent = 'Sync';
+      }
+    }
+    document.getElementById('syncBtn').addEventListener('click', syncFromBroker);
 
     /* ── Calendar ── */
     function renderCalendar() {
