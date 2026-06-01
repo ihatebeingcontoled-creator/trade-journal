@@ -683,6 +683,14 @@
     }
     .field input[readonly]:focus { border-color: #ebebeb; }
 
+    /* Fields the Sync button auto-fills from Capital.com — subtle yellow tint */
+    #fProfit, #fPercent, #fCapital, #fTrades, #fMarket {
+      background: #fffbeb;
+      border-color: #fce8a6;
+    }
+    #fProfit:focus, #fCapital:focus,
+    #fTrades:focus, #fMarket:focus { border-color: #f0c850; }
+
     .field-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
