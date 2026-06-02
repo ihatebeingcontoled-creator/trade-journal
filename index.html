@@ -12,6 +12,11 @@
       background: #ffffff;
       min-height: 100vh;
       overflow-x: hidden;
+      overflow-y: hidden;   /* PC: no scroll */
+      transition: background 0.5s ease;
+    }
+    @media (max-width: 1180px) {
+      body { overflow-y: auto; } /* phone: scroll allowed */
     }
 
     /* Warm yellow glow rising from the bottom */
@@ -26,7 +31,120 @@
         transparent 100%);
       pointer-events: none;
       z-index: 0;
+      transition: opacity 0.5s ease;
     }
+
+
+    /* ── Night mode ── */
+    body.night-mode { background: #0d1b3e; }
+    body.night-mode::before { opacity: 0; }
+
+    /* Night mode text colours */
+    body.night-mode .app-title,
+    body.night-mode .month-label,
+    body.night-mode .at-val,
+    body.night-mode .at-ring-num,
+    body.night-mode .rules-q,
+    body.night-mode .panel-title { color: #e8eef8; }
+
+    body.night-mode .at-label,
+    body.night-mode .at-ring-cap,
+    body.night-mode .rules-sub,
+    body.night-mode .weekday,
+    body.night-mode .stat-label { color: #4a6898; }
+
+    body.night-mode .stat-value { color: #c8d8f8; }
+
+    body.night-mode .side-panel {
+      background: rgba(10, 22, 58, 0.75);
+      border-color: #1e3560;
+    }
+    body.night-mode .stat-card {
+      background: rgba(10, 22, 58, 0.75);
+      border-color: #1e3560;
+    }
+    body.night-mode .at-row { border-bottom-color: #162048; }
+    body.night-mode .nav-btn {
+      border-color: #1e3560;
+      color: #8aabdb;
+    }
+    body.night-mode .nav-btn:hover { background: #162048; }
+    body.night-mode .day-cell {
+      background: rgba(10, 22, 58, 0.6);
+      border-color: #1e3560;
+    }
+    body.night-mode .day-cell.weekend {
+      border-color: #162048;
+      background: rgba(10, 22, 58, 0.3);
+    }
+    body.night-mode .day-cell.filler {
+      border-color: #111d3a;
+      background: transparent;
+    }
+    body.night-mode .day-cell.today {
+      border-color: #8aabdb;
+      background: rgba(20, 40, 90, 0.8);
+    }
+    body.night-mode .day-num { color: #3d5a8a; }
+    body.night-mode .day-cell.today .day-num { color: #c8d8f8; }
+    body.night-mode .rule-input {
+      background: rgba(10,22,58,0.7);
+      border-color: #1e3560;
+      color: #c8d8f8;
+    }
+    body.night-mode .rule-num {
+      background: rgba(10,22,58,0.7);
+      border-color: #1e3560;
+      color: #3d5a8a;
+    }
+    body.night-mode .rule-row.filled .rule-num {
+      background: #1e3560;
+      border-color: #2a4a7a;
+      color: #c8d8f8;
+    }
+
+    /* Trees fixed to bottom */
+    .bg-trees {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      width: 100%;
+      height: 170px;
+      pointer-events: none;
+      z-index: 0;
+      transition: opacity 0.5s ease;
+    }
+    .bg-trees.day-trees   { opacity: 1; }
+    .bg-trees.night-trees { opacity: 0; }
+    body.night-mode .bg-trees.day-trees   { opacity: 0; }
+    body.night-mode .bg-trees.night-trees { opacity: 1; }
+
+    /* Theme toggle button */
+    .theme-btn {
+      background: none;
+      border: 1.5px solid #e2e2e2;
+      border-radius: 8px;
+      padding: 7px 11px;
+      font-size: 14px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      transition: background 0.15s, border-color 0.15s;
+      font-family: inherit;
+      line-height: 1;
+    }
+    .theme-btn:hover { background: #f4f4f4; border-color: #ccc; }
+    body.night-mode .theme-btn { border-color: #1e3560; background: rgba(13,27,62,0.5); }
+    body.night-mode .theme-btn:hover { background: rgba(30,53,96,0.7); }
+
+    /* Filler cells — ghost outline of adjacent-month days */
+    .day-cell.filler {
+      cursor: default;
+      background: transparent;
+      border: 1.5px solid #e8e8e8;
+      border-radius: 13px;
+      opacity: 0.45;
+    }
+    .day-cell.filler:hover { transform: none !important; background: transparent !important; }
 
     /* ── Three-panel page layout ── */
     .page {
@@ -37,7 +155,7 @@
       gap: 26px;
       max-width: 1480px;
       margin: 0 auto;
-      padding: 34px 24px 72px;
+      padding: 20px 20px 20px;
       align-items: start;
     }
 
@@ -238,7 +356,7 @@
       display: flex;
       align-items: center;
       justify-content: space-between;
-      margin-bottom: 36px;
+      margin-bottom: 18px;
     }
 
     .app-title {
@@ -344,13 +462,13 @@
       display: grid;
       grid-template-columns: repeat(4, 1fr);
       gap: 12px;
-      margin-bottom: 26px;
+      margin-bottom: 14px;
     }
     .stat-card {
       background: #fafafa;
       border: 1.5px solid #ececec;
       border-radius: 12px;
-      padding: 13px 16px;
+      padding: 9px 12px;
     }
     .stat-label {
       font-size: 10.5px;
@@ -361,7 +479,7 @@
       margin-bottom: 5px;
     }
     .stat-value {
-      font-size: 20px;
+      font-size: 17px;
       font-weight: 800;
       color: #111;
       letter-spacing: -0.4px;
@@ -400,7 +518,7 @@
     /* ── Day cell ── */
     .day-cell {
       aspect-ratio: 1;
-      min-height: 78px;
+      min-height: 58px;
       border-radius: 13px;
       border: 2px solid #facc15;
       background: #fafafa;
@@ -843,6 +961,89 @@
   </style>
 </head>
 <body>
+
+  <!-- Day trees: barely-there warm-white/cream silhouettes -->
+  <svg class="bg-trees day-trees" viewBox="0 0 1400 170" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,170 L0,125 L16,58 L32,125 L32,170 Z" fill="#faf8ee" opacity="0.5"/>
+    <path d="M8,124 L24,52 L40,124 Z" fill="#fdfbf3" opacity="0.4"/>
+    <path d="M17,108 L31,44 L45,108 Z" fill="#faf8ee" opacity="0.35"/>
+    <path d="M75,170 L75,118 L93,46 L111,118 L111,170 Z" fill="#faf8ee" opacity="0.48"/>
+    <path d="M86,116 L104,42 L122,116 Z" fill="#fdfbf3" opacity="0.38"/>
+    <path d="M97,100 L113,36 L129,100 Z" fill="#faf8ee" opacity="0.33"/>
+    <path d="M185,170 L185,122 L202,50 L219,122 L219,170 Z" fill="#faf8ee" opacity="0.5"/>
+    <path d="M195,120 L213,44 L231,120 Z" fill="#fdfbf3" opacity="0.4"/>
+    <path d="M206,104 L222,38 L238,104 Z" fill="#faf8ee" opacity="0.34"/>
+    <path d="M305,170 L305,116 L324,44 L343,116 L343,170 Z" fill="#faf8ee" opacity="0.48"/>
+    <path d="M316,114 L335,40 L354,114 Z" fill="#fdfbf3" opacity="0.38"/>
+    <path d="M328,98 L345,34 L362,98 Z" fill="#faf8ee" opacity="0.32"/>
+    <path d="M430,170 L430,120 L448,48 L466,120 L466,170 Z" fill="#faf8ee" opacity="0.5"/>
+    <path d="M440,118 L458,44 L476,118 Z" fill="#fdfbf3" opacity="0.4"/>
+    <path d="M452,102 L468,36 L484,102 Z" fill="#faf8ee" opacity="0.34"/>
+    <path d="M556,170 L556,124 L573,52 L590,124 L590,170 Z" fill="#faf8ee" opacity="0.48"/>
+    <path d="M566,122 L584,46 L602,122 Z" fill="#fdfbf3" opacity="0.38"/>
+    <path d="M577,106 L593,40 L609,106 Z" fill="#faf8ee" opacity="0.32"/>
+    <path d="M675,170 L675,118 L694,46 L713,118 L713,170 Z" fill="#faf8ee" opacity="0.5"/>
+    <path d="M686,116 L705,42 L724,116 Z" fill="#fdfbf3" opacity="0.4"/>
+    <path d="M699,100 L716,36 L733,100 Z" fill="#faf8ee" opacity="0.34"/>
+    <path d="M800,170 L800,122 L818,50 L836,122 L836,170 Z" fill="#faf8ee" opacity="0.48"/>
+    <path d="M810,120 L828,46 L846,120 Z" fill="#fdfbf3" opacity="0.38"/>
+    <path d="M822,104 L838,38 L854,104 Z" fill="#faf8ee" opacity="0.32"/>
+    <path d="M924,170 L924,116 L942,44 L960,116 L960,170 Z" fill="#faf8ee" opacity="0.5"/>
+    <path d="M934,114 L952,40 L970,114 Z" fill="#fdfbf3" opacity="0.4"/>
+    <path d="M946,98 L962,34 L978,98 Z" fill="#faf8ee" opacity="0.34"/>
+    <path d="M1048,170 L1048,120 L1066,48 L1084,120 L1084,170 Z" fill="#faf8ee" opacity="0.48"/>
+    <path d="M1058,118 L1076,44 L1094,118 Z" fill="#fdfbf3" opacity="0.38"/>
+    <path d="M1070,102 L1086,36 L1102,102 Z" fill="#faf8ee" opacity="0.32"/>
+    <path d="M1174,170 L1174,124 L1192,52 L1210,124 L1210,170 Z" fill="#faf8ee" opacity="0.5"/>
+    <path d="M1184,122 L1202,46 L1220,122 Z" fill="#fdfbf3" opacity="0.4"/>
+    <path d="M1196,106 L1212,40 L1228,106 Z" fill="#faf8ee" opacity="0.34"/>
+    <path d="M1298,170 L1298,118 L1316,46 L1334,118 L1334,170 Z" fill="#faf8ee" opacity="0.48"/>
+    <path d="M1308,116 L1326,42 L1344,116 Z" fill="#fdfbf3" opacity="0.38"/>
+    <path d="M1320,100 L1336,36 L1352,100 Z" fill="#faf8ee" opacity="0.32"/>
+    <path d="M1368,170 L1368,122 L1385,50 L1400,122 L1400,170 Z" fill="#faf8ee" opacity="0.44"/>
+  </svg>
+
+  <!-- Night trees: deep navy silhouettes -->
+  <svg class="bg-trees night-trees" viewBox="0 0 1400 170" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+    <path d="M0,170 L0,125 L16,58 L32,125 L32,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M8,124 L24,52 L40,124 Z" fill="#091840" opacity="0.88"/>
+    <path d="M17,108 L31,44 L45,108 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M75,170 L75,118 L93,46 L111,118 L111,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M86,116 L104,42 L122,116 Z" fill="#091840" opacity="0.88"/>
+    <path d="M97,100 L113,36 L129,100 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M185,170 L185,122 L202,50 L219,122 L219,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M195,120 L213,44 L231,120 Z" fill="#091840" opacity="0.88"/>
+    <path d="M206,104 L222,38 L238,104 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M305,170 L305,116 L324,44 L343,116 L343,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M316,114 L335,40 L354,114 Z" fill="#091840" opacity="0.88"/>
+    <path d="M328,98 L345,34 L362,98 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M430,170 L430,120 L448,48 L466,120 L466,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M440,118 L458,44 L476,118 Z" fill="#091840" opacity="0.88"/>
+    <path d="M452,102 L468,36 L484,102 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M556,170 L556,124 L573,52 L590,124 L590,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M566,122 L584,46 L602,122 Z" fill="#091840" opacity="0.88"/>
+    <path d="M577,106 L593,40 L609,106 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M675,170 L675,118 L694,46 L713,118 L713,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M686,116 L705,42 L724,116 Z" fill="#091840" opacity="0.88"/>
+    <path d="M699,100 L716,36 L733,100 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M800,170 L800,122 L818,50 L836,122 L836,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M810,120 L828,46 L846,120 Z" fill="#091840" opacity="0.88"/>
+    <path d="M822,104 L838,38 L854,104 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M924,170 L924,116 L942,44 L960,116 L960,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M934,114 L952,40 L970,114 Z" fill="#091840" opacity="0.88"/>
+    <path d="M946,98 L962,34 L978,98 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M1048,170 L1048,120 L1066,48 L1084,120 L1084,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M1058,118 L1076,44 L1094,118 Z" fill="#091840" opacity="0.88"/>
+    <path d="M1070,102 L1086,36 L1102,102 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M1174,170 L1174,124 L1192,52 L1210,124 L1210,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M1184,122 L1202,46 L1220,122 Z" fill="#091840" opacity="0.88"/>
+    <path d="M1196,106 L1212,40 L1228,106 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M1298,170 L1298,118 L1316,46 L1334,118 L1334,170 Z" fill="#0b1e52" opacity="0.95"/>
+    <path d="M1308,116 L1326,42 L1344,116 Z" fill="#091840" opacity="0.88"/>
+    <path d="M1320,100 L1336,36 L1352,100 Z" fill="#08163a" opacity="0.82"/>
+    <path d="M1368,170 L1368,122 L1385,50 L1400,122 L1400,170 Z" fill="#0b1e52" opacity="0.9"/>
+  </svg>
+
   <div class="page">
 
     <!-- ── LEFT: All-time summary ── -->
@@ -873,6 +1074,7 @@
       <div class="app-header">
         <span class="app-title">Trade Journal</span>
         <div class="head-actions">
+          <button class="theme-btn" id="themeBtn" title="Toggle day / night">🌙</button>
           <button class="sync-btn" id="syncBtn" title="Pull closed trades from Capital.com">
             <span id="syncBtnIcon">⟳</span>
             <span id="syncBtnLabel">Sync</span>
@@ -1409,19 +1611,23 @@
     /* ── Calendar ── */
     function renderCalendar() {
       document.getElementById('monthLabel').textContent = MONTHS[viewMonth] + ' ' + viewYear;
-      const grid    = document.getElementById('daysGrid');
-      const today   = new Date();
-      const firstDay = new Date(viewYear, viewMonth, 1).getDay();
+      const grid        = document.getElementById('daysGrid');
+      const today       = new Date();
+      const firstDay    = new Date(viewYear, viewMonth, 1).getDay();
       const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate();
+      const totalCells  = 42; /* always 6 rows × 7 cols */
 
       grid.innerHTML = '';
 
+      /* ── Leading filler cells (days from previous month) ── */
+      const prevMonthDays = new Date(viewYear, viewMonth, 0).getDate();
       for (let i = 0; i < firstDay; i++) {
-        const blank = document.createElement('div');
-        blank.className = 'day-cell empty';
-        grid.appendChild(blank);
+        const cell = document.createElement('div');
+        cell.className = 'day-cell filler';
+        grid.appendChild(cell);
       }
 
+      /* ── Current month days ── */
       for (let d = 1; d <= daysInMonth; d++) {
         const dateStr = viewYear + '-' + pad(viewMonth + 1) + '-' + pad(d);
         const trade   = tradesData[dateStr];
@@ -1442,13 +1648,11 @@
           else if (p < 0) cell.classList.add('loss');
         }
 
-        /* day number top-left */
         const num = document.createElement('div');
         num.className = 'day-num';
         num.textContent = d;
         cell.appendChild(num);
 
-        /* P&L center */
         if (trade && trade.profit !== '' && trade.profit !== undefined) {
           const p = parseFloat(trade.profit);
           const pnlEl = document.createElement('div');
@@ -1466,6 +1670,15 @@
         }
 
         if (!isWeekend) cell.addEventListener('click', () => openModal(dateStr));
+        grid.appendChild(cell);
+      }
+
+      /* ── Trailing filler cells (days from next month) ── */
+      const filled = firstDay + daysInMonth;
+      const trailing = totalCells - filled;
+      for (let i = 0; i < trailing; i++) {
+        const cell = document.createElement('div');
+        cell.className = 'day-cell filler';
         grid.appendChild(cell);
       }
 
@@ -1788,18 +2001,10 @@
       const prev = tradesData[dateStr] || {};
       const fieldVal = document.getElementById('fCapital').value;
 
-      /* When capital is overridden, recalculate % against the locked capital value
-         so the calendar cell and modal always show the same number. */
-      const profitNum  = parseFloat(document.getElementById('fProfit').value);
-      const capNum     = parseFloat(fieldVal);
-      const computedPct = (!isNaN(profitNum) && !isNaN(capNum) && capNum > 0)
-        ? (profitNum / capNum * 100).toFixed(2)
-        : document.getElementById('fPercent').value;
-
       const payload = {
         date:     dateStr,
         profit:   document.getElementById('fProfit').value,
-        percent:  capOverridden ? computedPct : document.getElementById('fPercent').value,
+        percent:  document.getElementById('fPercent').value,
         /* Keep Capital.com's value as the preset; lock to your own only when overridden */
         capital:        capOverridden ? prev.capital : fieldVal,
         capitalOverridden: capOverridden,
@@ -1865,6 +2070,21 @@
     document.querySelectorAll('.note-field textarea').forEach(ta => {
       ta.addEventListener('input', () => autoGrow(ta));
     });
+
+    /* ── Day / Night theme ── */
+    function applyTheme(night) {
+      document.body.classList.toggle('night-mode', night);
+      document.getElementById('themeBtn').textContent = night ? '☀️' : '🌙';
+    }
+    document.getElementById('themeBtn').addEventListener('click', () => {
+      const night = !document.body.classList.contains('night-mode');
+      applyTheme(night);
+      localStorage.setItem('tradejournal_theme', night ? 'night' : 'day');
+    });
+    /* Default: night mode unless user explicitly chose day */
+    const savedTheme = localStorage.getItem('tradejournal_theme');
+    applyTheme(savedTheme !== 'day');
+
   </script>
 </body>
 </html>
