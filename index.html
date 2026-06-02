@@ -1247,6 +1247,7 @@
       const o = loadOverrides();
       for (const date in o) {
         if (!tradesData[date]) continue;   // no trade that day → nothing to adjust
+        tradesData[date].capital           = o[date];   // displayed/synced number = your override
         tradesData[date].capitalOverridden = true;
         tradesData[date].capitalRisked     = o[date];
       }
@@ -1797,8 +1798,9 @@
         date:     dateStr,
         profit:   document.getElementById('fProfit').value,
         percent:  document.getElementById('fPercent').value,
-        /* Keep Capital.com's value as the preset; lock to your own only when overridden */
-        capital:        capOverridden ? prev.capital : fieldVal,
+        /* The override fully replaces Capital.com's number in the synced field,
+           so it travels to every device exactly like the percentage does */
+        capital:        fieldVal,
         capitalOverridden: capOverridden,
         capitalRisked:  capOverridden ? fieldVal : (prev.capitalRisked || ''),
         rr:       document.getElementById('fRR').value,
