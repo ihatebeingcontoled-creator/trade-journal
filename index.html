@@ -684,11 +684,11 @@
     .field input[readonly]:focus { border-color: #ebebeb; }
 
     /* Fields the Sync button auto-fills from Capital.com — subtle yellow tint */
-    #fProfit, #fPercent, #fCapital, #fTrades, #fMarket {
+    #fProfit, #fPercent, #fTrades, #fMarket {
       background: #fffbeb;
       border-color: #fce8a6;
     }
-    #fProfit:focus, #fCapital:focus,
+    #fProfit:focus,
     #fTrades:focus, #fMarket:focus { border-color: #f0c850; }
 
     .field-row {
@@ -1042,7 +1042,7 @@
         if (p > 0) wins++;
         else if (p < 0) losses++;
 
-        const c = parseFloat(t.capital);
+        const c = parseFloat(t.capitalRisked);
         if (!isNaN(c) && c > 0) totalCapital += c;
 
         const tt = parseInt(t.trades);
@@ -1329,7 +1329,7 @@
         tradingDays++;
         if (p > 0) wins++; else if (p < 0) losses++;
 
-        const c = parseFloat(t.capital);
+        const c = parseFloat(t.capitalRisked);
         if (!isNaN(c) && c > 0) totalCapital += c;
 
         const tt = parseInt(t.trades);
@@ -1496,7 +1496,7 @@
       if (t) {
         if (t.profit   !== undefined) document.getElementById('fProfit').value  = t.profit;
         if (t.percent  !== undefined) document.getElementById('fPercent').value = t.percent;
-        if (t.capital  !== undefined) document.getElementById('fCapital').value = t.capital;
+        if (t.capitalRisked !== undefined) document.getElementById('fCapital').value = t.capitalRisked;
         if (t.rr       !== undefined) document.getElementById('fRR').value      = t.rr;
         if (t.trades   !== undefined) document.getElementById('fTrades').value  = t.trades;
         if (t.market   !== undefined) document.getElementById('fMarket').value  = t.market;
@@ -1624,7 +1624,7 @@
         date:     dateStr,
         profit:   document.getElementById('fProfit').value,
         percent:  document.getElementById('fPercent').value,
-        capital:  document.getElementById('fCapital').value,
+        capitalRisked: document.getElementById('fCapital').value,
         rr:       document.getElementById('fRR').value,
         trades:   document.getElementById('fTrades').value,
         market:   document.getElementById('fMarket').value,
