@@ -691,6 +691,52 @@
     #fProfit:focus,
     #fTrades:focus, #fMarket:focus { border-color: #f0c850; }
 
+    /* Capital Risked — override control */
+    .cap-row { display: flex; gap: 8px; align-items: stretch; }
+    .cap-row input { flex: 1; min-width: 0; }
+    .cap-override-btn {
+      flex: none;
+      border: 1.5px solid #ebebeb;
+      background: #fff;
+      border-radius: 9px;
+      padding: 0 13px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #555;
+      cursor: pointer;
+      white-space: nowrap;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+    .cap-override-btn:hover { border-color: #555; color: #111; }
+    /* preset (follows Capital.com) */
+    #fCapital.cap-preset {
+      background: #fffbeb;
+      border-color: #fce8a6;
+      color: #666;
+    }
+    /* overridden (your own locked value) */
+    #fCapital.cap-custom {
+      background: #effaf3;
+      border-color: #b7e4c7;
+      color: #111;
+      cursor: text;
+    }
+    #fCapital.cap-custom:focus { border-color: #38a169; }
+    .cap-row.is-custom .cap-override-btn {
+      border-color: #b7e4c7;
+      background: #effaf3;
+      color: #2f855a;
+    }
+    .cap-row.is-custom .cap-override-btn:hover { border-color: #38a169; color: #276749; }
+    .cap-hint {
+      font-size: 10px;
+      font-weight: 600;
+      color: #b08a00;
+      margin-top: 1px;
+    }
+    .cap-hint.is-custom { color: #2f855a; }
+
     .field-row {
       display: grid;
       grid-template-columns: 1fr 1fr;
@@ -931,7 +977,11 @@
           <div class="field-row">
             <div class="field">
               <label>Capital Risked (€)</label>
-              <input type="number" id="fCapital" placeholder="e.g. 1000" step="0.01" />
+              <div class="cap-row" id="capRow">
+                <input type="number" id="fCapital" placeholder="e.g. 1000" step="0.01" readonly />
+                <button type="button" class="cap-override-btn" id="capOverrideBtn">Override</button>
+              </div>
+              <div class="cap-hint" id="capHint">Using Capital.com value</div>
             </div>
             <div class="field">
               <label>R:R Ratio</label>
@@ -997,6 +1047,7 @@
     let viewMonth  = now.getMonth();
     let tradesData = {};       // { 'YYYY-MM-DD': {profit,percent,...} }
     let activeDate = null;
+    let capOverridden = false;  // true when current day uses a manual capital value
     let pendingImg = null;     // base64 of newly-selected image
     let hasExistingImg = false;
 
@@ -1012,6 +1063,52 @@
     function fmtPct(v) {
       return (v >= 0 ? '+' : '') + Number(v).toFixed(2) + '%';
     }
+
+    /* Effective capital for a day: the overridden value if locked, else the Capital.com value */
+    function effCapital(t) {
+      return (t && t.capitalOverridden) ? t.capitalRisked : (t ? t.capital : undefined);
+    }
+
+    /* Switch the Capital Risked field between "follow Capital.com" and "your locked value" */
+    function applyCapitalMode(custom) {
+      capOverridden = custom;
+      const input = document.getElementById('fCapital');
+      const row   = document.getElementById('capRow');
+      const hint  = document.getElementById('capHint');
+      const btn   = document.getElementById('capOverrideBtn');
+
+      input.classList.remove('cap-preset', 'cap-custom');
+      if (custom) {
+        input.classList.add('cap-custom');
+        input.readOnly = false;
+        row.classList.add('is-custom');
+        hint.classList.add('is-custom');
+        hint.textContent = 'Locked — Capital.com can\u2019t change this';
+        btn.textContent = 'Use Capital.com';
+      } else {
+        input.classList.add('cap-preset');
+        input.readOnly = true;
+        row.classList.remove('is-custom');
+        hint.classList.remove('is-custom');
+        hint.textContent = 'Using Capital.com value';
+        btn.textContent = 'Override';
+      }
+    }
+
+    /* Override button: lock to your own value, or hand control back to Capital.com */
+    document.getElementById('capOverrideBtn').addEventListener('click', () => {
+      const input = document.getElementById('fCapital');
+      if (!capOverridden) {
+        applyCapitalMode(true);   // take over — keep current value as a starting point
+        input.focus();
+        input.select();
+      } else {
+        applyCapitalMode(false);  // give it back — restore the Capital.com value
+        const t = tradesData[activeDate];
+        input.value = (t && t.capital !== undefined) ? t.capital : '';
+        recalcPercent();
+      }
+    });
 
     /* Auto-calc % from profit / capital */
     function recalcPercent() {
@@ -1042,7 +1139,7 @@
         if (p > 0) wins++;
         else if (p < 0) losses++;
 
-        const c = parseFloat(t.capital);
+        const c = parseFloat(effCapital(t));
         if (!isNaN(c) && c > 0) totalCapital += c;
 
         const tt = parseInt(t.trades);
@@ -1329,7 +1426,7 @@
         tradingDays++;
         if (p > 0) wins++; else if (p < 0) losses++;
 
-        const c = parseFloat(t.capital);
+        const c = parseFloat(effCapital(t));
         if (!isNaN(c) && c > 0) totalCapital += c;
 
         const tt = parseInt(t.trades);
@@ -1481,6 +1578,7 @@
       document.getElementById('fProfit').value  = '';
       document.getElementById('fPercent').value = '';
       document.getElementById('fCapital').value = '';
+      applyCapitalMode(false);
       document.getElementById('fRR').value      = '';
       document.getElementById('fTrades').value  = '';
       document.getElementById('fMarket').value  = '';
@@ -1496,7 +1594,13 @@
       if (t) {
         if (t.profit   !== undefined) document.getElementById('fProfit').value  = t.profit;
         if (t.percent  !== undefined) document.getElementById('fPercent').value = t.percent;
-        if (t.capitalRisked !== undefined) document.getElementById('fCapital').value = t.capitalRisked;
+        if (t.capitalOverridden) {
+          applyCapitalMode(true);
+          document.getElementById('fCapital').value = (t.capitalRisked !== undefined) ? t.capitalRisked : '';
+        } else {
+          applyCapitalMode(false);
+          document.getElementById('fCapital').value = (t.capital !== undefined) ? t.capital : '';
+        }
         if (t.rr       !== undefined) document.getElementById('fRR').value      = t.rr;
         if (t.trades   !== undefined) document.getElementById('fTrades').value  = t.trades;
         if (t.market   !== undefined) document.getElementById('fMarket').value  = t.market;
@@ -1619,12 +1723,17 @@
       btn.textContent = 'Saving…';
 
       const dateStr = document.getElementById('fDate').value || activeDate;
+      const prev = tradesData[dateStr] || {};
+      const fieldVal = document.getElementById('fCapital').value;
 
       const payload = {
         date:     dateStr,
         profit:   document.getElementById('fProfit').value,
         percent:  document.getElementById('fPercent').value,
-        capitalRisked: document.getElementById('fCapital').value,
+        /* Keep Capital.com's value as the preset; lock to your own only when overridden */
+        capital:        capOverridden ? prev.capital : fieldVal,
+        capitalOverridden: capOverridden,
+        capitalRisked:  capOverridden ? fieldVal : (prev.capitalRisked || ''),
         rr:       document.getElementById('fRR').value,
         trades:   document.getElementById('fTrades').value,
         market:   document.getElementById('fMarket').value,
