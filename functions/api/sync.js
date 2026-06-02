@@ -9,6 +9,8 @@
 //    after/summary), rr and any uploaded image completely untouched.
 //  - Re-running is safe: each day is recomputed from scratch and
 //    replaced, so nothing double-counts.
+//  - If a day has a Capital Risked override saved in capital_overrides,
+//    Capital.com CANNOT change the capital or percent for that day.
 //
 //  Required environment variables (Pages > Settings > Variables):
 //    CAP_API_KEY      your Capital.com API key
@@ -28,7 +30,6 @@ const DEMO_BASE = 'https://demo-api-capital.backend-capital.com';
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 function fmtDate(d) {
-  // Capital.com wants  YYYY-MM-DDTHH:mm:ss  (no ms, no timezone)
   const p = (n) => String(n).padStart(2, '0');
   return `${d.getUTCFullYear()}-${p(d.getUTCMonth() + 1)}-${p(d.getUTCDate())}` +
          `T${p(d.getUTCHours())}:${p(d.getUTCMinutes())}:${p(d.getUTCSeconds())}`;
@@ -37,7 +38,6 @@ function fmtDate(d) {
 export async function onRequest(context) {
   const { request, env } = context;
 
-  // Allow simple CORS preflight (same-origin in practice, but harmless)
   if (request.method === 'OPTIONS') {
     return new Response(null, {
       headers: {
@@ -53,7 +53,7 @@ export async function onRequest(context) {
       headers: { 'Content-Type': 'application/json' },
     });
 
-  // ---- Admin auth (matches the other endpoints) ----
+  // ---- Admin auth ----
   const pw = request.headers.get('X-Admin-Password') || '';
   if (!env.ADMIN_PASSWORD || pw !== env.ADMIN_PASSWORD) {
     return json({ ok: false, error: 'Unauthorized' }, 401);
@@ -70,7 +70,6 @@ export async function onRequest(context) {
   const isDemo = /^(1|true|yes)$/i.test(env.CAP_DEMO || '');
   const BASE = isDemo ? DEMO_BASE : LIVE_BASE;
 
-  // lookback window: ?days=N (query) or body {days} or CAP_LOOKBACK_DAYS or 30
   let days = parseInt(env.CAP_LOOKBACK_DAYS || '30', 10);
   try {
     const u = new URL(request.url);
@@ -121,7 +120,6 @@ export async function onRequest(context) {
         headers: { 'Content-Type': 'application/json', ...authHeaders },
         body: JSON.stringify({ accountId: env.CAP_ACCOUNT_ID }),
       }).catch(() => {});
-      // refresh balance for that account
       const accRes = await fetch(`${BASE}/api/v1/accounts`, { headers: authHeaders });
       if (accRes.ok) {
         const accs = await accRes.json().catch(() => ({}));
@@ -133,7 +131,7 @@ export async function onRequest(context) {
     // ---- 2. Pull transaction history (chunked) ----
     const now = new Date();
     const start = new Date(now.getTime() - days * 86400000);
-    const CHUNK = 30; // days per request, conservative
+    const CHUNK = 30;
     const allTx = [];
 
     for (let cursor = new Date(start); cursor < now; cursor = new Date(cursor.getTime() + CHUNK * 86400000)) {
@@ -144,13 +142,11 @@ export async function onRequest(context) {
         const data = await txRes.json().catch(() => ({}));
         if (Array.isArray(data.transactions)) allTx.push(...data.transactions);
       }
-      await sleep(220); // stay well under rate limits
+      await sleep(220);
     }
 
     // ---- 3. Keep realized trade closes only, group by local calendar day ----
-    // Capital's `date` field is in the account timezone (what you see on the
-    // platform), so we use its date part to match what you'd journal.
-    const byDay = {}; // date -> { profit, count, markets:Set }
+    const byDay = {};
     for (const tx of allTx) {
       if (tx.transactionType !== 'TRADE') continue;
       const dateStr = (tx.date || tx.dateUtc || '').slice(0, 10);
@@ -170,10 +166,20 @@ export async function onRequest(context) {
     }
     const mostRecent = syncedDays[syncedDays.length - 1];
 
-    // ---- 4. Read existing rows so we preserve notes / rr / image ----
+    // ---- 4. Read existing rows + capital overrides ----
     const existingRows = await env.DB.prepare('SELECT * FROM trades').all();
     const existing = {};
     for (const r of (existingRows.results || [])) existing[r.date] = r;
+
+    // Load user's locked capital overrides — Capital.com must never overwrite these
+    let overrides = {};
+    try {
+      await env.DB.prepare(
+        'CREATE TABLE IF NOT EXISTS capital_overrides (date TEXT PRIMARY KEY, value TEXT NOT NULL)'
+      ).run();
+      const ovRows = await env.DB.prepare('SELECT date, value FROM capital_overrides').all();
+      for (const r of (ovRows.results || [])) overrides[r.date] = r.value;
+    } catch (_) { /* treat as no overrides if table missing */ }
 
     // ---- 5. Merge + upsert ----
     const stmt = env.DB.prepare(
@@ -194,16 +200,28 @@ export async function onRequest(context) {
       const profit = d.profit.toFixed(2);
       const market = Array.from(d.markets).sort().join(', ');
 
-      // capital: most recent day gets the current account balance;
-      // older days keep whatever was already there.
-      let capital = (prev.capital ?? '') + '';
-      if (date === mostRecent && balance != null) capital = Number(balance).toFixed(2);
+      const hasOverride = date in overrides;
 
-      // percent: derive from profit/capital when we have a usable capital
+      // capital: if the user has locked an override for this day, Capital.com cannot
+      // touch this column. Otherwise update normally (most recent day = current balance).
+      let capital = (prev.capital ?? '') + '';
+      if (!hasOverride) {
+        if (date === mostRecent && balance != null) capital = Number(balance).toFixed(2);
+      }
+
+      // percent: if override exists, recalculate using the user's locked capital value
+      // so the calendar cell always matches the modal. Capital.com's balance is ignored.
       let percent = (prev.percent ?? '') + '';
-      const capNum = parseFloat(capital);
-      if (!isNaN(capNum) && capNum > 0) percent = (d.profit / capNum * 100).toFixed(2);
-      else percent = '';
+      if (hasOverride) {
+        const overrideCap = parseFloat(overrides[date]);
+        if (!isNaN(overrideCap) && overrideCap > 0) {
+          percent = (d.profit / overrideCap * 100).toFixed(2);
+        }
+      } else {
+        const capNum = parseFloat(capital);
+        if (!isNaN(capNum) && capNum > 0) percent = (d.profit / capNum * 100).toFixed(2);
+        else percent = '';
+      }
 
       batch.push(stmt.bind(
         date,
