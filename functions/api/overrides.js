@@ -1,28 +1,15 @@
 /* ──────────────────────────────────────────────────────────────────────────
    Capital Risked overrides  →  /api/overrides
-   Save as:  functions/api/overrides.js   (no edits needed)
+   Save this as:  functions/api/overrides.js   (no edits needed)
 
-   Stores manual "Capital Risked" values in their own D1 table so they survive
-   a Capital.com re-sync. Every handler is wrapped so it can never 500 silently:
-   on any failure it returns the real error text in the body.
+   Stores your manual "Capital Risked" values in their own D1 table that your
+   /api/sync never touches — so a Capital.com sync can't wipe them, and they
+   follow you across every device.
+
+   • Uses the same DB binding as the rest of the app (variable name: DB).
+   • Reuses your existing ADMIN_PASSWORD env var — same as every other endpoint.
+   • Creates its table automatically on first use (no migration to run).
    ────────────────────────────────────────────────────────────────────────── */
-
-function json(obj, status) {
-  return new Response(JSON.stringify(obj), {
-    status: status || 200,
-    headers: { 'Content-Type': 'application/json' },
-  });
-}
-
-/* Find the D1 database among the bindings (any object exposing .prepare). */
-function getDB(env) {
-  for (const k in env) {
-    let v;
-    try { v = env[k]; } catch { continue; }
-    if (v && typeof v === 'object' && typeof v.prepare === 'function') return v;
-  }
-  return null;
-}
 
 async function ensureTable(db) {
   await db.prepare(
@@ -30,63 +17,58 @@ async function ensureTable(db) {
   ).run();
 }
 
-/* Admin check with no config: match the password against any secret/env string,
-   else fall back to the app's own /api/auth. */
-async function isAdmin(env, request, pw) {
-  if (!pw) return false;
-  for (const k in env) {
-    try { if (typeof env[k] === 'string' && env[k] === pw) return true; } catch {}
-  }
-  try {
-    const a = await fetch(new URL('/api/auth', request.url), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pw }),
-    });
-    if (a.ok) return true;
-  } catch {}
-  return false;
-}
-
+/* GET -> { "YYYY-MM-DD": "1000", ... }  — public, no auth needed */
 export async function onRequestGet({ env }) {
+  if (!env.DB) return new Response('No D1 database bound', { status: 500 });
   try {
-    const db = getDB(env);
-    if (!db) return json({ error: 'No D1 database binding found on this project' }, 500);
-    await ensureTable(db);
-    const { results } = await db.prepare('SELECT date, value FROM capital_overrides').all();
+    await ensureTable(env.DB);
+    const { results } = await env.DB.prepare('SELECT date, value FROM capital_overrides').all();
     const map = {};
     for (const row of results || []) map[row.date] = row.value;
-    return json(map, 200);
+    return new Response(JSON.stringify(map), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (e) {
-    return json({ error: 'GET failed: ' + (e && e.message ? e.message : String(e)) }, 500);
+    return new Response(JSON.stringify({ error: e.message }), { status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
 
+/* POST { date, value }  → upsert (value set) or delete (value empty). Admin only. */
 export async function onRequestPost({ request, env }) {
+  /* Auth: same pattern as trades.js / rules.js */
+  const pw = request.headers.get('X-Admin-Password') || '';
+  if (!env.ADMIN_PASSWORD || pw !== env.ADMIN_PASSWORD) {
+    return new Response('Unauthorized', { status: 401 });
+  }
+
+  if (!env.DB) return new Response('No D1 database bound', { status: 500 });
+
+  let body;
+  try { body = await request.json(); } catch { body = {}; }
+  const date  = body.date;
+  const value = body.value;
+  if (!date) return new Response('Missing date', { status: 400 });
+
   try {
-    const pw = request.headers.get('X-Admin-Password') || '';
-    if (!(await isAdmin(env, request, pw))) return json({ error: 'unauthorized' }, 401);
-
-    const db = getDB(env);
-    if (!db) return json({ error: 'No D1 database binding found on this project' }, 500);
-    await ensureTable(db);
-
-    let body;
-    try { body = await request.json(); } catch { body = {}; }
-    const date = body.date;
-    const value = body.value;
-    if (!date) return json({ error: 'missing date' }, 400);
+    await ensureTable(env.DB);
 
     if (value === '' || value === null || value === undefined) {
-      await db.prepare('DELETE FROM capital_overrides WHERE date = ?').bind(date).run();
+      await env.DB.prepare('DELETE FROM capital_overrides WHERE date = ?').bind(date).run();
     } else {
-      await db.prepare(
+      await env.DB.prepare(
         'INSERT INTO capital_overrides (date, value) VALUES (?, ?) ' +
         'ON CONFLICT(date) DO UPDATE SET value = excluded.value'
       ).bind(date, String(value)).run();
     }
-    return json({ ok: true }, 200);
+
+    return new Response(JSON.stringify({ ok: true }), {
+      headers: { 'Content-Type': 'application/json' }
+    });
   } catch (e) {
-    return json({ error: 'POST failed: ' + (e && e.message ? e.message : String(e)) }, 500);
+    return new Response(JSON.stringify({ error: e.message }), { status: 500,
+      headers: { 'Content-Type': 'application/json' }
+    });
   }
 }
