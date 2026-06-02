@@ -1194,8 +1194,9 @@
     const PW_KEY    = 'tradejournal_admin_pw';
     const OVR_KEY   = 'tradejournal_capital_overrides';
 
-    /* Capital overrides live ONLY in the browser, so a Capital.com sync that
-       wipes the server row can never erase them. They are re-applied on every load. */
+    /* Capital overrides are stored in their own D1 table via /api/overrides, so a
+       Capital.com sync can never wipe them, and they follow you across devices.
+       localStorage is just an offline cache + instant-paint mirror. */
     function loadOverrides() {
       try { return JSON.parse(localStorage.getItem(OVR_KEY)) || {}; }
       catch { return {}; }
@@ -1209,7 +1210,34 @@
     function clearOverride(date) {
       const o = loadOverrides(); delete o[date]; saveOverrides(o);
     }
-    /* Re-apply browser overrides onto whatever just came back from the server */
+
+    /* Pull the authoritative override set from D1 (falls back to local cache if offline
+       or the endpoint isn't deployed yet, so the app never breaks). */
+    async function syncOverridesFromServer() {
+      try {
+        const r = await fetch('/api/overrides', { cache: 'no-store' });
+        if (r.ok) {
+          const map = await r.json();
+          if (map && typeof map === 'object') saveOverrides(map);
+        }
+      } catch { /* offline / not deployed → keep local cache */ }
+    }
+
+    /* Write one override to D1 (and the local cache). Best-effort: if the server write
+       fails the local copy still holds, so nothing is lost. */
+    async function pushOverride(date, value, pw) {
+      const blank = (value === '' || value === null || value === undefined);
+      if (blank) clearOverride(date); else setOverride(date, value);
+      try {
+        await fetch('/api/overrides', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
+          body: JSON.stringify({ date, value: blank ? '' : value }),
+        });
+      } catch { /* keep local copy; will reconcile on next successful load */ }
+    }
+
+    /* Re-apply overrides onto whatever just came back from the server */
     function applyLocalOverrides() {
       const o = loadOverrides();
       for (const date in o) {
@@ -1253,7 +1281,8 @@
         }
       } catch { /* offline → use cache */ }
 
-      /* Restore any browser-locked capital values the sync may have wiped */
+      /* Restore capital overrides from D1 (cross-device), then re-apply them */
+      await syncOverridesFromServer();
       applyLocalOverrides();
     }
 
@@ -1272,9 +1301,10 @@
         body: JSON.stringify(payload),
       });
       if (!r.ok) throw new Error('Save failed: ' + r.status);
-      /* Mirror the override into the browser store so a future sync can't kill it */
-      if (payload.capitalOverridden) setOverride(dateStr, payload.capitalRisked);
-      else clearOverride(dateStr);
+      /* Persist the override in its own D1 table so a future sync can't kill it
+         and so it follows you across devices */
+      if (payload.capitalOverridden) await pushOverride(dateStr, payload.capitalRisked, pw);
+      else await pushOverride(dateStr, '', pw);
       tradesData[dateStr] = payload;
       localStorage.setItem(CACHE_KEY, JSON.stringify(tradesData));
     }
