@@ -19,6 +19,25 @@ function getDB(env) {
   return null;
 }
 
+/* Verify admin without needing to know the password's env-var name:
+   1) match the submitted password against any secret/env string, then
+   2) fall back to the app's own /api/auth (covers hashed/custom logic). */
+async function isAdmin(env, request, pw) {
+  if (!pw) return false;
+  for (const k in env) {
+    if (typeof env[k] === 'string' && env[k] === pw) return true;
+  }
+  try {
+    const a = await fetch(new URL('/api/auth', request.url), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password: pw }),
+    });
+    if (a.ok) return true;
+  } catch { /* ignore */ }
+  return false;
+}
+
 async function ensureTable(db) {
   await db.prepare(
     'CREATE TABLE IF NOT EXISTS capital_overrides (date TEXT PRIMARY KEY, value TEXT NOT NULL)'
@@ -40,16 +59,7 @@ export async function onRequestGet({ env }) {
 export async function onRequestPost({ request, env }) {
   const pw = request.headers.get('X-Admin-Password') || '';
 
-  // Reuse the app's own /api/auth so we don't need to know the password var name
-  let ok = false;
-  try {
-    const a = await fetch(new URL('/api/auth', request.url), {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ password: pw }),
-    });
-    ok = a.ok;
-  } catch { ok = false; }
+  const ok = await isAdmin(env, request, pw);
   if (!ok) return new Response('Unauthorized', { status: 401 });
 
   const db = getDB(env);
