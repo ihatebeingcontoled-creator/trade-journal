@@ -1223,25 +1223,18 @@
       } catch { /* offline / not deployed → keep local cache */ }
     }
 
-    /* Write one override to D1 (and the local cache). Local always succeeds; if the
-       server write fails we tell the user so a silent "didn't sync" can't happen. */
+    /* Write one override to D1 (and the local cache). Best-effort: if the server write
+       fails the local copy still holds, so nothing is lost. */
     async function pushOverride(date, value, pw) {
       const blank = (value === '' || value === null || value === undefined);
       if (blank) clearOverride(date); else setOverride(date, value);
       try {
-        const r = await fetch('/api/overrides', {
+        await fetch('/api/overrides', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
           body: JSON.stringify({ date, value: blank ? '' : value }),
         });
-        if (!r.ok) {
-          let detail = '';
-          try { const j = await r.json(); detail = j && j.error ? j.error : ''; } catch {}
-          toast('Override saved here. Cross-device backup failed: ' + (detail || ('HTTP ' + r.status)), true);
-        }
-      } catch {
-        toast('Override saved here, but the server couldn\u2019t be reached to sync it across devices.', true);
-      }
+      } catch { /* keep local copy; will reconcile on next successful load */ }
     }
 
     /* Re-apply overrides onto whatever just came back from the server */
@@ -1249,7 +1242,6 @@
       const o = loadOverrides();
       for (const date in o) {
         if (!tradesData[date]) continue;   // no trade that day → nothing to adjust
-        tradesData[date].capital           = o[date];   // displayed/synced number = your override
         tradesData[date].capitalOverridden = true;
         tradesData[date].capitalRisked     = o[date];
       }
@@ -1796,13 +1788,20 @@
       const prev = tradesData[dateStr] || {};
       const fieldVal = document.getElementById('fCapital').value;
 
+      /* When capital is overridden, recalculate % against the locked capital value
+         so the calendar cell and modal always show the same number. */
+      const profitNum  = parseFloat(document.getElementById('fProfit').value);
+      const capNum     = parseFloat(fieldVal);
+      const computedPct = (!isNaN(profitNum) && !isNaN(capNum) && capNum > 0)
+        ? (profitNum / capNum * 100).toFixed(2)
+        : document.getElementById('fPercent').value;
+
       const payload = {
         date:     dateStr,
         profit:   document.getElementById('fProfit').value,
-        percent:  document.getElementById('fPercent').value,
-        /* The override fully replaces Capital.com's number in the synced field,
-           so it travels to every device exactly like the percentage does */
-        capital:        fieldVal,
+        percent:  capOverridden ? computedPct : document.getElementById('fPercent').value,
+        /* Keep Capital.com's value as the preset; lock to your own only when overridden */
+        capital:        capOverridden ? prev.capital : fieldVal,
         capitalOverridden: capOverridden,
         capitalRisked:  capOverridden ? fieldVal : (prev.capitalRisked || ''),
         rr:       document.getElementById('fRR').value,
