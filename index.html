@@ -1223,18 +1223,23 @@
       } catch { /* offline / not deployed → keep local cache */ }
     }
 
-    /* Write one override to D1 (and the local cache). Best-effort: if the server write
-       fails the local copy still holds, so nothing is lost. */
+    /* Write one override to D1 (and the local cache). Local always succeeds; if the
+       server write fails we tell the user so a silent "didn't sync" can't happen. */
     async function pushOverride(date, value, pw) {
       const blank = (value === '' || value === null || value === undefined);
       if (blank) clearOverride(date); else setOverride(date, value);
       try {
-        await fetch('/api/overrides', {
+        const r = await fetch('/api/overrides', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'X-Admin-Password': pw },
           body: JSON.stringify({ date, value: blank ? '' : value }),
         });
-      } catch { /* keep local copy; will reconcile on next successful load */ }
+        if (!r.ok) {
+          toast('Override saved here, but cross-device sync failed (HTTP ' + r.status + '). Is /api/overrides deployed?', true);
+        }
+      } catch {
+        toast('Override saved here, but the server couldn\u2019t be reached to sync it across devices.', true);
+      }
     }
 
     /* Re-apply overrides onto whatever just came back from the server */
