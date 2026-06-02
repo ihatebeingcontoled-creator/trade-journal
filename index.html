@@ -1042,7 +1042,7 @@
         if (p > 0) wins++;
         else if (p < 0) losses++;
 
-        const c = parseFloat(t.capitalRisked);
+        const c = parseFloat(t.capital);
         if (!isNaN(c) && c > 0) totalCapital += c;
 
         const tt = parseInt(t.trades);
@@ -1329,7 +1329,7 @@
         tradingDays++;
         if (p > 0) wins++; else if (p < 0) losses++;
 
-        const c = parseFloat(t.capitalRisked);
+        const c = parseFloat(t.capital);
         if (!isNaN(c) && c > 0) totalCapital += c;
 
         const tt = parseInt(t.trades);
