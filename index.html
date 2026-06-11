@@ -408,6 +408,18 @@
     .sync-btn:disabled { opacity: 0.55; cursor: default; }
     .sync-btn .spin { display: inline-block; animation: syncspin 0.8s linear infinite; }
     @keyframes syncspin { to { transform: rotate(360deg); } }
+
+    /* ── BONK include/exclude toggle ── */
+    .bonk-btn {
+      display: inline-flex; align-items: center; gap: 6px;
+      background: #f3f3f3; color: #555; border: 1.5px solid #e0e0e0;
+      border-radius: 9px; padding: 8px 12px; font-size: 13px; font-weight: 700;
+      cursor: pointer; transition: background .15s, color .15s, border-color .15s;
+    }
+    .bonk-btn:hover { background: #e8e8e8; }
+    .bonk-btn.is-on { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+    body.night-mode .bonk-btn { background: #0f1a3a; color: #4a6898; border-color: #1c2a52; }
+    body.night-mode .bonk-btn.is-on { background: #3a2e08; color: #f0c850; border-color: #5a4a10; }
     .head-actions { display: flex; align-items: center; gap: 10px; }
 
     /* ── Viewer mode (non-admin): make modal read-only ── */
@@ -1056,6 +1068,7 @@
         <div class="at-row"><span class="at-label">Trading Days</span><span class="at-val" id="atDays">0</span></div>
         <div class="at-row"><span class="at-label">Best Day</span><span class="at-val pos" id="atBest">—</span></div>
         <div class="at-row"><span class="at-label">Worst Day</span><span class="at-val neg" id="atWorst">—</span></div>
+        <div class="at-row"><span class="at-label">Avg R:R</span><span class="at-val" id="atAvgRR">—</span></div>
       </div>
       <div class="at-ring-wrap">
         <svg class="at-ring" viewBox="0 0 120 120">
@@ -1074,6 +1087,7 @@
       <div class="app-header">
         <span class="app-title">Trade Journal</span>
         <div class="head-actions">
+          <button class="bonk-btn" id="bonkBtn" title="Include BONK/USD in P&L, win rate and all stats">🍌 BONK: off</button>
           <button class="theme-btn" id="themeBtn" title="Toggle day / night">🌙</button>
           <button class="sync-btn" id="syncBtn" title="Pull closed trades from Capital.com">
             <span id="syncBtnIcon">⟳</span>
@@ -1324,6 +1338,60 @@
       }
     }
 
+    /* ── BONK include/exclude filter (shared by month + all-time stats) ── */
+    const EXCLUDE_MARKETS = ['BONK'];   // dropped from stats when the toggle is OFF
+    let countBonk = localStorage.getItem('tradejournal_countbonk') === '1';
+
+    function isExcludedMarket(name) {
+      const norm = String(name).toUpperCase().replace(/[^A-Z0-9]/g, '');
+      return EXCLUDE_MARKETS.some(m => norm.includes(m));
+    }
+
+    /* byMarket is JSON: { "US100": {pnl, n}, "Bonk/USD": {pnl, n}, ... } */
+    function parseByMarket(t) {
+      if (!t.byMarket) return null;
+      let bm; try { bm = JSON.parse(t.byMarket); } catch { return null; }
+      if (!bm || typeof bm !== 'object') return null;
+      const out = {};
+      for (const k in bm) {
+        const v = bm[k];
+        out[k] = (typeof v === 'number')
+          ? { pnl: v, n: 0 }
+          : { pnl: parseFloat(v.pnl) || 0, n: parseInt(v.n) || 0 };
+      }
+      return out;
+    }
+
+    /* A day's stats under the current toggle.
+       counts=false means the day had only excluded instruments → drop it entirely. */
+    function dayStats(t) {
+      const fullPnl = parseFloat(t.profit);
+      const fullN   = parseInt(t.trades);
+      const full = { pnl: isNaN(fullPnl) ? null : fullPnl, n: isNaN(fullN) ? 0 : fullN, counts: true };
+      if (countBonk) return full;
+      const bm = parseByMarket(t);
+      if (!bm) return full;                       // no breakdown (not re-synced) → use full total
+      let pnl = 0, n = 0, anyIncluded = false;
+      for (const name in bm) {
+        if (isExcludedMarket(name)) continue;
+        pnl += bm[name].pnl; n += bm[name].n; anyIncluded = true;
+      }
+      return { pnl: anyIncluded ? pnl : null, n, counts: anyIncluded };
+    }
+
+    /* Parse an R:R entry — accepts "2", "2.5" or "1:2" forms */
+    function parseRR(s) {
+      if (s == null) return NaN;
+      s = String(s).trim();
+      if (s === '') return NaN;
+      if (s.includes(':')) {
+        const parts = s.split(':').map(x => parseFloat(x));
+        const a = parts[0], b = parts[1];
+        return (!isNaN(a) && !isNaN(b) && a !== 0) ? b / a : NaN;
+      }
+      return parseFloat(s);
+    }
+
     /* ── Month stats — top bar P&L / win rate / etc. ── */
     function computeMonthStats() {
       const prefix = viewYear + '-' + pad(viewMonth + 1) + '-';
@@ -1334,8 +1402,9 @@
         const t = tradesData[date];
         if (t.profit === '' || t.profit === undefined) continue;
 
-        const p = parseFloat(t.profit);
-        if (isNaN(p)) continue;
+        const ds = dayStats(t);
+        if (!ds.counts || ds.pnl === null) continue;
+        const p = ds.pnl;
 
         totalPnl += p;
         if (p > 0) wins++;
@@ -1344,8 +1413,7 @@
         const c = parseFloat(effCapital(t));
         if (!isNaN(c) && c > 0) totalCapital += c;
 
-        const tt = parseInt(t.trades);
-        if (!isNaN(tt)) totalTrades += tt;
+        totalTrades += ds.n;
       }
 
       const tradingDays = wins + losses;
@@ -1690,12 +1758,15 @@
     function computeAllTimeStats() {
       let totalPnl = 0, totalCapital = 0, wins = 0, losses = 0;
       let totalTrades = 0, tradingDays = 0, best = null, worst = null;
+      let rrSum = 0, rrCount = 0;
 
       for (const date in tradesData) {
         const t = tradesData[date];
         if (t.profit === '' || t.profit === undefined) continue;
-        const p = parseFloat(t.profit);
-        if (isNaN(p)) continue;
+
+        const ds = dayStats(t);
+        if (!ds.counts || ds.pnl === null) continue;
+        const p = ds.pnl;
 
         totalPnl += p;
         tradingDays++;
@@ -1704,11 +1775,13 @@
         const c = parseFloat(effCapital(t));
         if (!isNaN(c) && c > 0) totalCapital += c;
 
-        const tt = parseInt(t.trades);
-        if (!isNaN(tt)) totalTrades += tt;
+        totalTrades += ds.n;
 
         if (best  === null || p > best)  best  = p;
         if (worst === null || p < worst) worst = p;
+
+        const rr = parseRR(t.rr);
+        if (!isNaN(rr)) { rrSum += rr; rrCount++; }
       }
 
       const decided   = wins + losses;
@@ -1735,6 +1808,9 @@
       const worstEl = document.getElementById('atWorst');
       bestEl.textContent  = best  === null ? '—' : fmtMoney(best);
       worstEl.textContent = worst === null ? '—' : fmtMoney(worst);
+
+      const avgRR = rrCount > 0 ? (rrSum / rrCount) : null;
+      document.getElementById('atAvgRR').textContent = avgRR === null ? '—' : '1 : ' + avgRR.toFixed(2);
 
       /* Win-rate ring */
       const C   = 2 * Math.PI * 52;          /* r = 52 */
@@ -2070,6 +2146,21 @@
     document.querySelectorAll('.note-field textarea').forEach(ta => {
       ta.addEventListener('input', () => autoGrow(ta));
     });
+
+    /* ── BONK include/exclude toggle ── */
+    function updateBonkLabel() {
+      const b = document.getElementById('bonkBtn');
+      b.textContent = countBonk ? '🍌 BONK: on' : '🍌 BONK: off';
+      b.classList.toggle('is-on', countBonk);
+    }
+    document.getElementById('bonkBtn').addEventListener('click', () => {
+      countBonk = !countBonk;
+      localStorage.setItem('tradejournal_countbonk', countBonk ? '1' : '0');
+      updateBonkLabel();
+      computeMonthStats();
+      computeAllTimeStats();
+    });
+    updateBonkLabel();
 
     /* ── Day / Night theme ── */
     function applyTheme(night) {
