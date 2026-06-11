@@ -70,7 +70,7 @@ export async function onRequest(context) {
   const isDemo = /^(1|true|yes)$/i.test(env.CAP_DEMO || '');
   const BASE = isDemo ? DEMO_BASE : LIVE_BASE;
 
-  let days = parseInt(env.CAP_LOOKBACK_DAYS || '400', 10);
+  let days = parseInt(env.CAP_LOOKBACK_DAYS || '30', 10);
   try {
     const u = new URL(request.url);
     if (u.searchParams.get('days')) days = parseInt(u.searchParams.get('days'), 10);
