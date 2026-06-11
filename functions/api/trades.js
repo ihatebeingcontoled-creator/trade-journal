@@ -46,6 +46,7 @@ export async function onRequestGet({ env }) {
         nClose:   row.nClose   ?? '',
         nAfter:   row.nAfter   ?? '',
         nSummary: row.nSummary ?? '',
+        byMarket: row.byMarket ?? '',
         hasImage: !!row.hasImage,
       };
     }
