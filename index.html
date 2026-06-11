@@ -1087,7 +1087,7 @@
       <div class="app-header">
         <span class="app-title">Trade Journal</span>
         <div class="head-actions">
-          <button class="bonk-btn" id="bonkBtn" title="Include BONK/USD in P&L, win rate and all stats">🍌 BONK: off</button>
+          <button class="bonk-btn" id="bonkBtn" title="Show only US 100 + S&P 500, or all markets">US 100 + S&P 500 only</button>
           <button class="theme-btn" id="themeBtn" title="Toggle day / night">🌙</button>
           <button class="sync-btn" id="syncBtn" title="Pull closed trades from Capital.com">
             <span id="syncBtnIcon">⟳</span>
@@ -1339,12 +1339,15 @@
     }
 
     /* ── BONK include/exclude filter (shared by month + all-time stats) ── */
-    const EXCLUDE_MARKETS = ['BONK'];   // dropped from stats when the toggle is OFF
+    // When the toggle is OFF, ONLY these instruments count (your two US indices).
+    // Names are normalized (spaces/slashes stripped) before matching, so
+    // "US 500" → US500 and "US Tech 100" → USTECH100 both match. Add more here if needed.
+    const INCLUDE_MARKETS = ['US500', 'USTECH100', 'US100', 'SP500'];
     let countBonk = localStorage.getItem('tradejournal_countbonk') === '1';
 
-    function isExcludedMarket(name) {
+    function isIncludedMarket(name) {
       const norm = String(name).toUpperCase().replace(/[^A-Z0-9]/g, '');
-      return EXCLUDE_MARKETS.some(m => norm.includes(m));
+      return INCLUDE_MARKETS.some(m => norm.includes(m));
     }
 
     /* byMarket is JSON: { "US100": {pnl, n}, "Bonk/USD": {pnl, n}, ... } */
@@ -1373,7 +1376,7 @@
       if (!bm) return full;                       // no breakdown (not re-synced) → use full total
       let pnl = 0, n = 0, anyIncluded = false;
       for (const name in bm) {
-        if (isExcludedMarket(name)) continue;
+        if (!isIncludedMarket(name)) continue;
         pnl += bm[name].pnl; n += bm[name].n; anyIncluded = true;
       }
       return { pnl: anyIncluded ? pnl : null, n, counts: anyIncluded };
@@ -2150,7 +2153,7 @@
     /* ── BONK include/exclude toggle ── */
     function updateBonkLabel() {
       const b = document.getElementById('bonkBtn');
-      b.textContent = countBonk ? '🍌 BONK: on' : '🍌 BONK: off';
+      b.textContent = countBonk ? 'All markets' : 'US 100 + S&P 500 only';
       b.classList.toggle('is-on', countBonk);
     }
     document.getElementById('bonkBtn').addEventListener('click', () => {
