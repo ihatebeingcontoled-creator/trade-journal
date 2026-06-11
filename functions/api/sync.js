@@ -153,10 +153,15 @@ export async function onRequest(context) {
       if (!dateStr) continue;
       const amt = parseFloat(tx.size);
       if (isNaN(amt)) continue;
-      if (!byDay[dateStr]) byDay[dateStr] = { profit: 0, count: 0, markets: new Set() };
+      if (!byDay[dateStr]) byDay[dateStr] = { profit: 0, count: 0, markets: new Set(), byMarket: {} };
       byDay[dateStr].profit += amt;
       byDay[dateStr].count += 1;
       if (tx.instrumentName) byDay[dateStr].markets.add(tx.instrumentName);
+      // per-instrument realized P&L + trade count so stats can be filtered by market
+      const inst = tx.instrumentName || 'Unknown';
+      if (!byDay[dateStr].byMarket[inst]) byDay[dateStr].byMarket[inst] = { pnl: 0, n: 0 };
+      byDay[dateStr].byMarket[inst].pnl += amt;
+      byDay[dateStr].byMarket[inst].n   += 1;
     }
 
     const syncedDays = Object.keys(byDay).sort();
@@ -185,8 +190,8 @@ export async function onRequest(context) {
     const stmt = env.DB.prepare(
       `INSERT OR REPLACE INTO trades
         (date, profit, percent, capital, rr, trades, market,
-         nBefore, nEntry, nClose, nAfter, nSummary, hasImage)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)`
+         nBefore, nEntry, nClose, nAfter, nSummary, hasImage, byMarket)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`
     );
 
     const batch = [];
@@ -236,7 +241,8 @@ export async function onRequest(context) {
         (prev.nClose ?? '') + '',       // preserved
         (prev.nAfter ?? '') + '',       // preserved
         (prev.nSummary ?? '') + '',     // preserved
-        prev.hasImage ? 1 : 0           // preserved
+        prev.hasImage ? 1 : 0,          // preserved
+        JSON.stringify(d.byMarket)      // per-instrument P&L breakdown
       ));
     }
 
